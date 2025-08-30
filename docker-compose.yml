@@ -1,0 +1,26 @@
+version: '3.4'
+services:
+  clean_architecture_app:
+    container_name: clean_architecture_app # Define container name (can be change)
+    build:
+      context: .
+      dockerfile: Dockerfile # Use created Dockerfile in racine (see more for build details)
+    ports:
+      - '5173:5173' # Expose port 5173 for vite (default port for vite)
+    volumes:
+      - .:/app
+    #      - /app/node_modules
+    environment:
+      NODE_ENV: development # Define environment on development (can be change in production mode)
+    stdin_open: true # Maintient le terminal ouvert
+    tty: true # Active le mode tty pour un shell interactif
+#  cypress:
+#    container_name: cypress # Define container name (can be change)
+#    image: cypress/included:12.0.0
+#    working_dir: /e2e
+#    volumes:
+#      - ./cypress:/e2e/cypress  # Mount Cypress directory in container
+#      - ./cypress.json:/e2e/cypress.json  # Mount Cypress configuration file
+#    entrypoint: [ "/bin/sh", "-c", "npx cypress run" ]  # Command to execute cypress testing
+#    depends_on:
+#      - app  # Wait for app service to work before mounting cypress service
