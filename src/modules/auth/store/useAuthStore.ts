@@ -25,7 +25,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     // Verfie si l'utilisateur est un admin
     const isAdmin = () => {
-        return account.value?.role?.name === 'ROLE_ADMIN' ?? false
+        return account.value?.role?.name === 'ROLE_ADMIN'
     }
 
     // Récupération de l'utilisateur connecté et de sa session.

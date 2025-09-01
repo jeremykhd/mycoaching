@@ -42,7 +42,6 @@ const navigation = [
   { name: 'Comptes utilisateurs', to: '/accounts', adminOnly: true },
   { name: 'Mon profil', to: '/profil' },
   { name: 'Paramètres', to: '/settings', adminOnly: true },
-  { name: 'Se deconnecter', to: '/logout' },
 ]
 
 const filteredNavigation = computed(() => {
@@ -101,10 +100,11 @@ const filteredNavigation = computed(() => {
           <span class="flex-shrink-0">Se déconnecter</span>
         </button>
       </div>
+
     </div>
 
     <!-- Mobile Navigation Menu -->
-    <div
+    <!-- <div
       v-if="isMobileMenuOpen"
       class="fixed inset-0 bg-white z-50 md:hidden"
     >
@@ -139,6 +139,6 @@ const filteredNavigation = computed(() => {
           </div>
         </nav>
       </div>
-    </div>
+    </div> -->
   </div>
 </template>

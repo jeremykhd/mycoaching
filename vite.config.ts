@@ -35,7 +35,7 @@ export default defineConfig({
                 ]
             },
             devOptions: {
-                enabled: true
+                enabled: false
             },
             injectRegister: 'auto'
         })
@@ -47,6 +47,7 @@ export default defineConfig({
     },
     server: {
         host: true, // Set to true because of docker container
-        port: 5173
+        port: 5173,
+        watch: { usePolling: true } // For docker container
     }
 })

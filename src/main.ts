@@ -9,17 +9,17 @@ import Toast from 'vue-toastification'
 import 'vue-toastification/dist/index.css'
 import './assets/base.css'
 // @ts-ignore
-import { registerSW } from 'virtual:pwa-register'
+// import { registerSW } from 'virtual:pwa-register'
 
-registerSW({
-    onNeedRefresh() {
-        console.log('Nouvelle version disponible !')
-    },
-    onOfflineReady() {
-        console.log('Application prête à être utilisée hors ligne.')
-    },
-    immediate: true
-})
+// registerSW({
+//     onNeedRefresh() {
+//         console.log('Nouvelle version disponible !')
+//     },
+//     onOfflineReady() {
+//         console.log('Application prête à être utilisée hors ligne.')
+//     },
+//     immediate: true
+// })
 
 const app = createApp(App)
 
