@@ -4,9 +4,19 @@ import { useWorkoutStore } from '../store/useWorkoutStore';
 import type { Exercise } from '../models/Exercise';
 import type { Workout } from '../models/Workout';
 import { PlusCircleIcon, PencilSquareIcon, ArchiveBoxIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline';
+import ModalComponent from '@/shared/components/modal/ModalComponent.vue';
+import ExerciseCreateForm from '../components/ExerciseCreateForm.vue';
+import { useExerciseService } from '../services/useExerciseService';
+
+onMounted(async () => {
+    await workoutStore.fetchExercises()
+    await workoutStore.fetchExerciseTypes()
+})
 
 const workoutStore = useWorkoutStore()
 const selectedWorkout = ref<Workout | null>(null)
+const showCreateModal = ref(false)
+const { postExercise } = useExerciseService()
 
 // Stats data
 const stats = ref({
@@ -29,12 +39,15 @@ const exerciseProgress = ref({
     ]
 })
 
-onMounted(async () => {
-    await workoutStore.fetchExercises()
-})
-
 const addExercise = () => {
-    // Add exercise logic
+    showCreateModal.value = true
+}
+
+async function handleCreate(exercise: Omit<Exercise, 'id'>) {
+    // If workout relation is needed, you can enrich here later
+    await postExercise(exercise as Exercise)
+    showCreateModal.value = false
+    await workoutStore.fetchExercises()
 }
 </script>
 
@@ -206,6 +219,25 @@ const addExercise = () => {
                 <span class="text-2xl">+</span>
             </button>
         </div>
+
+        <!-- Create Exercise Modal -->
+        <ModalComponent v-model="showCreateModal" size="lg">
+            <template #modal-header>
+                <div class="p-4 border-b border-neutral-200">
+                    <h3 class="text-lg font-semibold text-night-900">Créer un exercice</h3>
+                </div>
+            </template>
+            <template #modal-body>
+                <div class="p-4">
+                    <ExerciseCreateForm :exerciseTypes="workoutStore.exerciseTypes" @submit="handleCreate" />
+                </div>
+            </template>
+            <template #modal-footer>
+                <div class="p-4 border-t border-neutral-200 text-right">
+                    <button class="px-4 py-2 rounded-lg border border-neutral-200 text-night-700" @click="showCreateModal = false">Annuler</button>
+                </div>
+            </template>
+        </ModalComponent>
     </div>
 </template>
 
