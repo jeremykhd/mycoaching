@@ -17,7 +17,7 @@ const $emit = defineEmits<{
 const form = ref<ExerciseForm>({
     title: '',
     subtitle: '',
-    type: $props.exerciseTypes[0],
+    type: $props.exerciseTypes[0].id,
     body_weight: 0,
     weight: 0,
     repetitions: 0,

@@ -8,7 +8,7 @@ interface SelectOption {
 
 const props = defineProps<{
     label: string;
-    modelValue: string | undefined;
+    modelValue: string | number | undefined;
     options: SelectOption[];
     isEditing?: boolean;
     placeholder?: string;
