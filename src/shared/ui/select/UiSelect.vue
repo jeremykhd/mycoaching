@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 
 interface SelectOption {
-    value: string;
+    value: string | number;
     label: string;
 }
 
@@ -15,7 +15,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-    (e: 'update:modelValue', value: string): void
+    (e: 'update:modelValue', value: string | number): void
 }>()
 
 const displayValue = computed(() => {

@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import UiInputText from '@/shared/ui/inputs/UiInputText.vue';
 import UiInputNumber from '@/shared/ui/inputs/UiInputNumber.vue';
 import UiSelect from '@/shared/ui/select/UiSelect.vue';
-import type { ExerciseType } from '../models/Exercise';
+import type { ExerciseType, ExerciseForm } from '../models/Exercise';
 
 const $props = withDefaults(defineProps<{
     exerciseTypes: ExerciseType[]
