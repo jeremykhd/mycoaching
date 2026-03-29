@@ -73,6 +73,20 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
+    const fetchAccount = async () => {
+        try {
+            const { data, error } = await getAccount(user.value?.id)
+            if (error) throw new Error(error.message)
+            account.value = data
+        } catch (e) {
+            console.error('Error fetching account:', e)
+            error.value =
+                e instanceof Error
+                    ? e.message
+                    : 'Une erreur est survenue lors de la récupération du compte'
+        }
+    }
+
     // Méthode pour se connecter en utilisant un mot de passe, à mettre en place dans le futur.
     const signIn = async (email: string, password: string) => {
         try {
@@ -226,6 +240,7 @@ export const useAuthStore = defineStore('auth', () => {
         pendingVerificationEmail,
         isAdmin,
         fetchUser,
+        fetchAccount,
         signIn,
         signOut,
         sendOTP,

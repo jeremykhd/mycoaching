@@ -61,6 +61,9 @@ router.beforeEach(async (to, from, next) => {
     // Vérifier l'état de l'authentification si nécessaire
     if (authStore.user === null) {
         await authStore.fetchUser()
+    } else if (authStore.user && !authStore.account) {
+        // console.log('Fetching account...')
+        await authStore.fetchAccount()
     }
 
     // Gérer les redirections
