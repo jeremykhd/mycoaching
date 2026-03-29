@@ -3,8 +3,7 @@ import { ref } from 'vue';
 import UiInputText from '@/shared/ui/inputs/UiInputText.vue';
 import UiInputNumber from '@/shared/ui/inputs/UiInputNumber.vue';
 import UiSelect from '@/shared/ui/select/UiSelect.vue';
-import { ExerciseMuscleGroup } from '../models/Exercise';
-import type { Exercise } from '../models/Exercise';
+import type { ExerciseType, ExerciseForm } from '../models/Exercise';
 
 const $props = withDefaults(defineProps<{
     exerciseTypes: ExerciseType[]
@@ -12,13 +11,13 @@ const $props = withDefaults(defineProps<{
     exerciseTypes: () => []
 });
 const $emit = defineEmits<{
-    (e: 'submit', value: form.value): void
+    (e: 'submit', value: ExerciseForm): void
 }>()
 
-const form = ref<Exercise>({
+const form = ref<ExerciseForm>({
     title: '',
     subtitle: '',
-    type: $props.exerciseTypes[0],
+    type: $props.exerciseTypes[0].id,
     body_weight: 0,
     weight: 0,
     repetitions: 0,

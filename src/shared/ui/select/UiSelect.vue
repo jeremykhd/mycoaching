@@ -2,20 +2,20 @@
 import { computed } from 'vue';
 
 interface SelectOption {
-    value: string;
+    value: string | number;
     label: string;
 }
 
 const props = defineProps<{
     label: string;
-    modelValue: string | undefined;
+    modelValue: string | number | undefined;
     options: SelectOption[];
     isEditing?: boolean;
     placeholder?: string;
 }>()
 
 const emit = defineEmits<{
-    (e: 'update:modelValue', value: string): void
+    (e: 'update:modelValue', value: string | number): void
 }>()
 
 const displayValue = computed(() => {

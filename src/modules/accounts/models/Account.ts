@@ -13,15 +13,12 @@ export interface Account {
   firstname: string
   lastname: string
   email: string
-  password: string
-  height: number
   gender: EnumGender | null
   birthday: Date | string
   phone_number?: string
-  createdAt?: string
-  updatedAt?: string
+  created_at: string
   is_active: boolean
-  health: Health
-  objectives: Objectives
+  health: Health | null
+  objectives: Objectives | null
   role: Role
 }

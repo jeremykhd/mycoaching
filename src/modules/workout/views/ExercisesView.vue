@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
 import { useWorkoutStore } from '../store/useWorkoutStore';
-import type { Exercise } from '../models/Exercise';
+import type { ExerciseForm } from '../models/Exercise';
 import type { Workout } from '../models/Workout';
 import { PlusCircleIcon, PencilSquareIcon, ArchiveBoxIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline';
 import ModalComponent from '@/shared/components/modal/ModalComponent.vue';
@@ -43,9 +43,9 @@ const addExercise = () => {
     showCreateModal.value = true
 }
 
-async function handleCreate(exercise: Omit<Exercise, 'id'>) {
+async function handleCreate(exercise: ExerciseForm) {
     // If workout relation is needed, you can enrich here later
-    await postExercise(exercise as Exercise)
+    await postExercise(exercise as ExerciseForm)
     showCreateModal.value = false
     await workoutStore.fetchExercises()
 }

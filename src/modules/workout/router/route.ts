@@ -5,14 +5,14 @@ import ExercisesView from '../views/ExercisesView.vue'
 export const workoutRoute: RouteRecordRaw = {
     path: '/workout',
     name: 'workout',
-    meta: { requiredAuth: true },
+    meta: { requiresAuth: true },
     component: WorkoutView,
     children: []
 }
 export const ExercisesRoute: RouteRecordRaw = {
     path: '/exercises',
     name: 'exercises',
-    meta: { requiredAuth: true },
+    meta: { requiresAuth: true },
     component: ExercisesView,
     children: []
 }
