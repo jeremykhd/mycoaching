@@ -10,19 +10,25 @@ Backend: **Supabase (PostgreSQL)**
 auth.users (Supabase)
     │
     └── account (user_id → auth.users.id)
-            ├── health_id         → health
-            ├── objectives_id     → training_objectives
             ├── role_id           → role
+            │
+            ├── health (account_id → account)
+            ├── training_objectives (account_id → account)
+            ├── account_health (account_id → account, time-series weight)
             │
             ├── account_group ────→ group
             │                          ├── workout_group ──→ workout
             │                          └── create_by ──────→ account
             │
-            ├── account_health (time-series weight log)
+            ├── workout (account_id → account, creator)
+            │     └── workout_exercise
+            │           ├── type → workout_exercise_type
+            │           ├── account_id → account (custom exercises)
+            │           └── muscle_group, equipment, image_url...
             │
-            └── workout_session ──→ workout
-                                        └── workout_exercise
-                                                └── type → workout_exercise_type
+            └── workout_session (account_id → account)
+                  └── workout_session_exercise
+                        └── workout_session_set (actual performance)
 ```
 
 ---
@@ -40,35 +46,31 @@ Main user profile. Linked to Supabase auth via `user_id`.
 | `firstname` | varchar | YES | |
 | `lastname` | varchar | YES | |
 | `birthday` | date | YES | |
-| `gender` | USER-DEFINED | YES | Enum (values TBD) |
+| `gender` | USER-DEFINED | YES | Enum |
 | `phone_number` | varchar | YES | |
-| `height` | integer | YES | cm |
-| `health_id` | bigint | YES | FK → `health` |
-| `objectives_id` | bigint | YES | FK → `training_objectives` |
 | `role_id` | bigint | YES | FK → `role` |
-| `is_active` | boolean | NO | |
+| `is_active` | boolean | NO | default false |
 | `created_at` | timestamptz | NO | |
 
 ---
 
 ### `health`
-Health profile snapshot for an account (static reference data).
+Health profile for an account. Relation inverted: health points to account.
 
 | Column | Type | Nullable | Notes |
 |--------|------|----------|-------|
 | `id` | bigint | NO | PK |
+| `account_id` | bigint | YES | FK → `account` |
 | `height` | integer | YES | cm |
 | `weight` | real | YES | current weight |
 | `target_weight` | real | YES | goal weight |
-| `measure_weight` | USER-DEFINED | YES | Enum: unit (kg/lbs) |
+| `measure_weight` | USER-DEFINED | YES | Enum: frequency (daily/weekly/monthly) |
 | `target_training` | smallint | YES | target sessions/week |
-
-> **Note:** This is the static health profile. For historical weight tracking over time, see `account_health`.
 
 ---
 
 ### `account_health`
-Time-series weight measurements for an account.
+Time-series weight measurements for progress charts.
 
 | Column | Type | Nullable | Notes |
 |--------|------|----------|-------|
@@ -77,16 +79,15 @@ Time-series weight measurements for an account.
 | `weight` | real | YES | measured weight |
 | `date` | timestamptz | NO | measurement date |
 
-> Use this table to draw weight-over-time charts. Different from `health` which is a point-in-time snapshot.
-
 ---
 
 ### `training_objectives`
-Training goals linked to an account.
+Training goals. Relation inverted: objectives points to account.
 
 | Column | Type | Nullable | Notes |
 |--------|------|----------|-------|
 | `id` | bigint | NO | PK |
+| `account_id` | bigint | YES | FK → `account` |
 | `training_per_week` | smallint | YES | target sessions per week |
 | `created_at` | timestamptz | NO | |
 
@@ -127,11 +128,12 @@ Junction table — many-to-many between accounts and groups.
 ---
 
 ### `workout`
-Workout templates created by a coach.
+Workout templates created by a user.
 
 | Column | Type | Nullable | Notes |
 |--------|------|----------|-------|
 | `id` | bigint | NO | PK |
+| `account_id` | bigint | YES | FK → `account` (creator) |
 | `title` | varchar | YES | |
 | `subtitle` | varchar | YES | |
 | `created_at` | timestamptz | NO | |
@@ -139,20 +141,27 @@ Workout templates created by a coach.
 ---
 
 ### `workout_exercise`
-Exercises within a workout template.
+Exercises within a workout template. Supports both imported (API) and custom exercises.
 
 | Column | Type | Nullable | Notes |
 |--------|------|----------|-------|
 | `id` | bigint | NO | PK |
 | `workout_id` | bigint | YES | FK → `workout` |
 | `type` | bigint | YES | FK → `workout_exercise_type` |
+| `account_id` | bigint | YES | FK → `account` (null = global, set = personal) |
 | `title` | varchar | YES | |
 | `subtitle` | varchar | YES | |
 | `body_weight` | boolean | YES | true = no external weight |
 | `weight` | real | YES | kg |
-| `repetitions` | integer | YES | reps per set |
-| `set` | smallint | YES | number of sets |
+| `repetitions` | integer | YES | target reps per set |
+| `set` | smallint | YES | target number of sets |
 | `rest` | smallint | YES | rest in seconds |
+| `muscle_group` | varchar | YES | primary muscle group |
+| `secondary_muscles` | varchar | YES | secondary muscles |
+| `equipment` | varchar | YES | required equipment |
+| `image_url` | text | YES | exercise GIF/image URL |
+| `instructions` | text | YES | exercise description |
+| `is_custom` | boolean | NO | default true. false = imported from API |
 
 ---
 
@@ -179,34 +188,46 @@ Junction table — workouts assigned to groups.
 ---
 
 ### `workout_session`
-An actual workout performed by an athlete (tracks completion).
+An actual workout performed by a user.
 
 | Column | Type | Nullable | Notes |
 |--------|------|----------|-------|
 | `id` | bigint | NO | PK |
-| `account_id` | bigint | YES | FK → `account` (athlete) |
+| `account_id` | bigint | YES | FK → `account` |
 | `workout_id` | bigint | YES | FK → `workout` (template used) |
+| `notes` | text | YES | session notes |
 | `created_at` | timestamptz | NO | session start |
-| `finished_at` | timestamp | YES | null = in progress |
+| `finished_at` | timestamptz | YES | null = in progress |
 
 ---
 
-### `training_session`
-Individual exercise execution within a planning session.
+### `workout_session_exercise`
+Each exercise performed in a session (links to the template exercise).
 
 | Column | Type | Nullable | Notes |
 |--------|------|----------|-------|
 | `id` | bigint | NO | PK |
-| `plannings_session_id` | bigint | YES | FK → planning table (not yet in schema) |
-| `title` | varchar | YES | |
-| `subtitle` | varchar | YES | |
-| `body_weight` | varchar | YES | |
-| `weight` | real | YES | |
-| `repetitions` | integer | YES | |
-| `series_number` | smallint | YES | |
-| `repos` | smallint | YES | rest in seconds |
+| `workout_session_id` | bigint | NO | FK → `workout_session` (CASCADE) |
+| `workout_exercise_id` | bigint | NO | FK → `workout_exercise` |
+| `order` | smallint | YES | exercise order in session |
+| `notes` | text | YES | exercise-specific notes |
+| `created_at` | timestamptz | NO | |
 
-> `plannings_session_id` references a planning/schedule table not yet present in the schema. This table may be part of a future planning feature.
+---
+
+### `workout_session_set`
+Each set performed — the actual performance data for progression tracking.
+
+| Column | Type | Nullable | Notes |
+|--------|------|----------|-------|
+| `id` | bigint | NO | PK |
+| `workout_session_exercise_id` | bigint | NO | FK → `workout_session_exercise` (CASCADE) |
+| `set_number` | smallint | NO | series number (1, 2, 3...) |
+| `repetitions` | integer | YES | actual reps performed |
+| `weight` | real | YES | actual weight used |
+| `body_weight` | boolean | YES | default false |
+| `completed` | boolean | NO | default false |
+| `created_at` | timestamptz | NO | |
 
 ---
 
@@ -215,19 +236,24 @@ Individual exercise execution within a planning session.
 | From | Column | To | Type |
 |------|--------|----|------|
 | `account` | `user_id` | `auth.users.id` | 1-to-1 |
-| `account` | `health_id` | `health` | 1-to-1 |
-| `account` | `objectives_id` | `training_objectives` | 1-to-1 |
 | `account` | `role_id` | `role` | many-to-1 |
+| `health` | `account_id` | `account` | many-to-1 (1-to-1 in practice) |
+| `training_objectives` | `account_id` | `account` | many-to-1 (1-to-1 in practice) |
 | `account_health` | `account_id` | `account` | many-to-1 |
 | `account_group` | `account_id` | `account` | many-to-many pivot |
 | `account_group` | `group_id` | `group` | many-to-many pivot |
 | `group` | `create_by` | `account` | many-to-1 |
+| `workout` | `account_id` | `account` | many-to-1 |
 | `workout_exercise` | `workout_id` | `workout` | many-to-1 |
 | `workout_exercise` | `type` | `workout_exercise_type` | many-to-1 |
+| `workout_exercise` | `account_id` | `account` | many-to-1 (custom exercises) |
 | `workout_group` | `workout_id` | `workout` | many-to-many pivot |
 | `workout_group` | `group_id` | `group` | many-to-many pivot |
 | `workout_session` | `account_id` | `account` | many-to-1 |
 | `workout_session` | `workout_id` | `workout` | many-to-1 |
+| `workout_session_exercise` | `workout_session_id` | `workout_session` | many-to-1 (CASCADE) |
+| `workout_session_exercise` | `workout_exercise_id` | `workout_exercise` | many-to-1 |
+| `workout_session_set` | `workout_session_exercise_id` | `workout_session_exercise` | many-to-1 (CASCADE) |
 
 ---
 
@@ -235,14 +261,23 @@ Individual exercise execution within a planning session.
 
 | Table | Column | Known values |
 |-------|--------|-------------|
-| `account` | `gender` | TBD |
-| `health` | `measure_weight` | likely `kg` / `lbs` |
+| `account` | `gender` | `male`, `female` |
+| `health` | `measure_weight` | `daily`, `weekly`, `monthly` |
 
 ---
 
-## Notes & Observations
+## Progression Query Example
 
-- **Two health concepts:** `health` = static profile snapshot; `account_health` = time-series measurements. Use `account_health` for progress charts.
-- **Groups feature:** Coaches can group athletes and assign workouts to entire groups via `workout_group` + `account_group`.
-- **Planning feature (incomplete):** `training_session.plannings_session_id` suggests a scheduling/planning layer not yet fully modeled in the DB.
-- **Workout vs Training session:** `workout_session` tracks when an athlete performed a `workout` template. `training_session` appears to be a different (possibly older or planning-based) concept.
+To get weight progression for a specific exercise over time:
+
+```sql
+SELECT
+  wss.weight,
+  wss.repetitions,
+  wss.set_number,
+  wse.created_at
+FROM workout_session_set wss
+JOIN workout_session_exercise wse ON wse.id = wss.workout_session_exercise_id
+WHERE wse.workout_exercise_id = :exercise_id
+ORDER BY wse.created_at ASC;
+```
