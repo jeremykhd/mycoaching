@@ -1,12 +1,13 @@
 <script lang="ts" setup>
-import UiInputBase from '../inputs/UiInputBase.vue';
+import { computed } from 'vue';
+
 
 interface SelectOption {
     value: string | number;
     label: string;
 }
 
-defineProps<{
+const props = defineProps<{
     label: string;
     modelValue: string | number | undefined;
     options: SelectOption[];

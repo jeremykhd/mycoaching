@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import UiInputBase from './UiInputBase.vue';
+import { computed } from 'vue';
 
 const props = defineProps<{
     label: string;

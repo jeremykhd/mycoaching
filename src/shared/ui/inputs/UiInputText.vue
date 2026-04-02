@@ -1,7 +1,7 @@
 <script lang="ts" setup>
-import UiInputBase from './UiInputBase.vue';
+import { computed } from 'vue';
 
-defineProps<{
+const props = defineProps<{
     label: string;
     modelValue: string | undefined;
     isEditing?: boolean;
