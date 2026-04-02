@@ -7,7 +7,7 @@ export function useAccountService() {
     return await supabase
       .from('account')
       .select(
-        '*, health(id, height, weight, target_weight, target_training, measure_weight), training_objectives(training_per_week), role(name)'
+        '*, health!account_id(id, height, weight, target_weight, target_training, measure_weight), training_objectives!account_id(id, training_per_week), role:role_id(name)'
       )
       .eq('user_id', userId)
       .maybeSingle()
@@ -17,12 +17,12 @@ export function useAccountService() {
     return await supabase
       .from('account')
       .select(
-        '*, health(id, height, weight, target_weight, target_training, measure_weight), training_objectives(training_per_week), role(name)'
+        '*, health!account_id(id, height, weight, target_weight, target_training, measure_weight), training_objectives!account_id(id, training_per_week), role:role_id(name)'
       )
   }
 
   async function postAccount(
-    account: Partial<Omit<Account, 'password'>>,
+    account: Partial<Account>,
     email: string,
     userId: string
   ): Promise<PostgrestSingleResponse<Account>> {
@@ -39,7 +39,7 @@ export function useAccountService() {
       .from('account')
       .insert(newAccount)
       .select(
-        '*, health(id, height, weight, target_weight, target_training, measure_weight), training_objectives(training_per_week), role(name)'
+        '*, health!account_id(id, height, weight, target_weight, target_training, measure_weight), training_objectives!account_id(id, training_per_week), role:role_id(name)'
       )
       .single()
   }
@@ -53,7 +53,7 @@ export function useAccountService() {
       .update(account)
       .eq('id', accountId)
       .select(
-        '*, health(id, height, weight, target_weight, target_training, measure_weight), training_objectives(training_per_week), role(name)'
+        '*, health!account_id(id, height, weight, target_weight, target_training, measure_weight), training_objectives!account_id(id, training_per_week), role:role_id(name)'
       )
       .single()
   }

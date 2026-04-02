@@ -1,13 +1,14 @@
 import './assets/main.css'
-
+import 'vue-toastification/dist/index.css'
+import './assets/base.css'
+// import 'unfonts.css'
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 
 import App from './App.vue'
 import router from './router'
 import Toast from 'vue-toastification'
-import 'vue-toastification/dist/index.css'
-import './assets/base.css'
+
 // @ts-ignore
 // import { registerSW } from 'virtual:pwa-register'
 

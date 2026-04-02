@@ -18,7 +18,7 @@ const form = ref<ExerciseForm>({
     title: '',
     subtitle: '',
     type: $props.exerciseTypes[0].id,
-    body_weight: 0,
+    body_weight: false,
     weight: 0,
     repetitions: 0,
     set: 0,
@@ -42,7 +42,10 @@ function onSubmit() {
         <UiInputText label="Sous-titre" v-model="form.subtitle" :isEditing="true" placeholder="Ex: Barre libre" />
         <UiSelect label="Groupe musculaire" v-model="form.type" :options="exerciseTypes" :isEditing="true" placeholder="Sélectionner" />
         <div class="grid grid-cols-2 gap-4">
-            <UiInputNumber label="Poids du corps" v-model="form.body_weight" :isEditing="true" step="1" min="0" />
+            <div class="flex items-center gap-2">
+                <input type="checkbox" id="body_weight" v-model="form.body_weight" class="rounded border-gray-300" />
+                <label for="body_weight" class="text-sm font-medium text-night-700">Poids du corps</label>
+            </div>
             <UiInputNumber label="Poids (kg)" v-model="form.weight" :isEditing="true" step="0.5" min="0" />
         </div>
         <div class="grid grid-cols-3 gap-4">

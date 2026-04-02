@@ -12,7 +12,7 @@ export function useObjectivesService() {
   async function patchObjectives(
     objectives: Partial<Objectives>
   ): Promise<PostgrestSingleResponse<Objectives>> {
-    return await supabase.from('heatraining_objectiveslth').update(objectives).select().single()
+    return await supabase.from('training_objectives').update(objectives).select().single()
   }
 
   return {

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, watch } from 'vue';
+import { ref } from 'vue';
 import SidebarLeftComponent from './sidebar/SidebarLeftComponent.vue';
 import SidebarTopComponent from './sidebar/SidebarTopComponent.vue';
 import type { User } from '@supabase/supabase-js';
@@ -15,17 +15,16 @@ defineProps<{
 const isSidebarOpen = ref(true)
 const isMobileMenuOpen = ref(false)
 const { isMobile } = useDeviceIsMobile()
-
 </script>
 
 <template>
-  <div class="h-screen overflow-y-scroll bg-white">
+  <div class="h-screen overflow-y-scroll bg-bg">
     <!-- Sidebar -->
     <SidebarLeftComponent
     :account="account"
     :is-sidebar-open="isSidebarOpen"
     />
-    
+
     <!-- Main Content -->
     <div
       :class="[
@@ -35,19 +34,18 @@ const { isMobile } = useDeviceIsMobile()
       ]"
     >
       <!-- Top Navigation -->
-      <SidebarTopComponent 
+      <SidebarTopComponent
       v-if="!isMobile"
-      :is-sidebar-open="isSidebarOpen" 
+      :is-sidebar-open="isSidebarOpen"
       :is-mobile-menu-open="isMobileMenuOpen"
       @update:isSidebarOpen="(event) => isSidebarOpen = event"
       @update:isMobileMenuOpen="(event) => isMobileMenuOpen = event"
       />
 
-
       <!-- Page Content -->
       <main class="py-10 pb-32 relative h-full overflow-y-scroll">
         <div class="px-4 sm:px-6 lg:px-8">
-            <slot></slot>
+          <slot></slot>
         </div>
       </main>
 
@@ -55,9 +53,3 @@ const { isMobile } = useDeviceIsMobile()
     </div>
   </div>
 </template>
-<style>
-.glass-effect {
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-</style>

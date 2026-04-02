@@ -4,7 +4,7 @@ import { useAuthStore } from '@/modules/auth/store/useAuthStore'
 import LoginView from '@/modules/auth/views/LoginView.vue'
 import VerifyOTPView from '@/modules/auth/views/VerifyOTPView.vue'
 import CreateAccountView from '@/modules/accounts/views/CreateAccountView.vue'
-import { ExercisesRoute, workoutRoute } from '@/modules/workout/router/route'
+import { ExercisesRoute, workoutRoute, workoutSessionDetailRoute, workoutSessionEditRoute } from '@/modules/workout/router/route'
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -17,6 +17,8 @@ const router = createRouter({
             children: [
                 accountsRoute,
                 workoutRoute,
+                workoutSessionDetailRoute,
+                workoutSessionEditRoute,
                 ExercisesRoute,
                 {
                     path: '/dashboard',
@@ -61,6 +63,9 @@ router.beforeEach(async (to, from, next) => {
     // Vérifier l'état de l'authentification si nécessaire
     if (authStore.user === null) {
         await authStore.fetchUser()
+    } else if (authStore.user && !authStore.account) {
+        // console.log('Fetching account...')
+        await authStore.fetchAccount()
     }
 
     // Gérer les redirections

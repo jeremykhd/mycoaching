@@ -6,8 +6,12 @@ import AppLayout from './shared/components/AppLayout.vue';
 
 <template>
   <AuthProvider v-slot="{ user, account }">
-    <AppLayout :user="user" :account="account" >
-      <RouterView :user="user" :account="account"  />
+    <AppLayout :user="user" :account="account">
+      <RouterView v-slot="{ Component, route }" :user="user" :account="account">
+        <Transition :name="(route.meta.transition as string) || 'page'" mode="out-in">
+          <component :is="Component" :key="route.path" />
+        </Transition>
+      </RouterView>
     </AppLayout>
   </AuthProvider>
 </template>

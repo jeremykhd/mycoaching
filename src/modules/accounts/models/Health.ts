@@ -6,6 +6,7 @@ export enum EnumMeasureWeight {
 
 export interface Health {
   id: number
+  account_id: number
   height: number
   weight: number
   target_weight: number
