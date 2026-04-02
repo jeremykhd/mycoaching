@@ -52,8 +52,8 @@ const hasHealthData = computed(() => {
 });
 
 const handleSubmit = async () => {
-  if (account.value?.id) {
-    const updatedAccount = await accountStore.updateHealth(account.value?.health.id, formData.value);
+  if (account.value?.id && account.value?.health?.id) {
+    const updatedAccount = await accountStore.updateHealth(account.value.health.id, formData.value);
     isEditing.value = false;
     authStore.account = updatedAccount as Account
   }

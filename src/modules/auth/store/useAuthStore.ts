@@ -75,7 +75,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     const fetchAccount = async () => {
         try {
-            const { data, error } = await getAccount(user.value?.id)
+            const { data, error } = await getAccount(user.value?.id ?? '')
             if (error) throw new Error(error.message)
             account.value = data
         } catch (e) {

@@ -36,10 +36,10 @@ describe('HealthComponent', () => {
 
             expect(wrapper.text()).toContain('Statistiques de Santé')
             expect(wrapper.text()).toContain('Objectifs de Santé')
-            expect(wrapper.text()).toContain(account.health.weight.toString())
-            expect(wrapper.text()).toContain(account.health.height.toString())
-            expect(wrapper.text()).toContain(account.health.target_weight.toString())
-            expect(wrapper.text()).toContain(account.health.target_training.toString())
+            expect(wrapper.text()).toContain(account.health!.weight.toString())
+            expect(wrapper.text()).toContain(account.health!.height.toString())
+            expect(wrapper.text()).toContain(account.health!.target_weight.toString())
+            expect(wrapper.text()).toContain(account.health!.target_training.toString())
         })
     })
 
@@ -93,11 +93,11 @@ describe('HealthComponent', () => {
             expect(targetTrainingInput.exists()).toBe(true)
             expect(measureSelect.exists()).toBe(true)
 
-            expect(weightInput.props('modelValue')).toBe(account.health.weight)
-            expect(heightInput.props('modelValue')).toBe(account.health.height)
-            expect(targetWeightInput.props('modelValue')).toBe(account.health.target_weight)
-            expect(targetTrainingInput.props('modelValue')).toBe(account.health.target_training)
-            expect(measureSelect.props('modelValue')).toBe(account.health.measure_weight)
+            expect(weightInput.props('modelValue')).toBe(account.health!.weight)
+            expect(heightInput.props('modelValue')).toBe(account.health!.height)
+            expect(targetWeightInput.props('modelValue')).toBe(account.health!.target_weight)
+            expect(targetTrainingInput.props('modelValue')).toBe(account.health!.target_training)
+            expect(measureSelect.props('modelValue')).toBe(account.health!.measure_weight)
         })
     })
 
@@ -127,12 +127,12 @@ describe('HealthComponent', () => {
             await form.trigger('submit')
             await flushPromises()
 
-            expect(accountStore.updateHealth).toHaveBeenCalledWith(account.health.id, {
+            expect(accountStore.updateHealth).toHaveBeenCalledWith(account.health!.id, {
                 weight: 80,
                 height: 185,
                 measure_weight: 'weekly',
-                target_weight: account.health.target_weight,
-                target_training: account.health.target_training
+                target_weight: account.health!.target_weight,
+                target_training: account.health!.target_training
             })
         })
 
@@ -153,7 +153,7 @@ describe('HealthComponent', () => {
             await cancelButton.trigger('click')
             await flushPromises()
 
-            expect(wrapper.text()).toContain(account.health.weight.toString())
+            expect(wrapper.text()).toContain(account.health!.weight.toString())
         })
     })
 

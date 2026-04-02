@@ -6,7 +6,7 @@ defineProps<{
 
 <template>
 <div class="card" :class="[
-  transparent ? 'bg-white text-gray-900' : 'bg-blue-950 text-white'
+  transparent ? 'bg-transparent border-none backdrop-blur-none' : ''
 ]">
     <slot></slot>
 </div>

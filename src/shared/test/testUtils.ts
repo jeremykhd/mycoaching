@@ -12,6 +12,7 @@ import type { Session, User } from '@supabase/supabase-js'
 // Mock factories
 export const createMockHealth = (overrides: Partial<Health> = {}): Health => ({
     id: 1,
+    account_id: 1,
     height: 180,
     weight: 70,
     target_weight: 75,
@@ -22,6 +23,7 @@ export const createMockHealth = (overrides: Partial<Health> = {}): Health => ({
 
 export const createMockObjectives = (overrides: Partial<Objectives> = {}): Objectives => ({
     id: 1,
+    account_id: 1,
     training_per_week: 5,
     ...overrides
 })
@@ -58,13 +60,10 @@ export const createMockAccount = (overrides: Partial<Account> = {}): Account => 
     firstname: 'test',
     lastname: 'test',
     email: 'test@test.com',
-    password: 'hashedPassword',
     birthday: '1990-01-01',
     phone_number: '0123456789',
     gender: EnumGender.male,
-    height: 180,
-    createdAt: '2024-01-01',
-    updatedAt: '2024-01-01',
+    created_at: '2024-01-01',
     is_active: true,
     health: createMockHealth(),
     objectives: createMockObjectives(),

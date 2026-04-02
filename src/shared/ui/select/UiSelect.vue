@@ -34,25 +34,26 @@ const handleInput = (event: Event) => {
 
 <template>
     <div>
-        <label class="block text-sm font-medium text-night-700">{{ label }}</label>
+        <label class="block text-sm font-medium text-text-secondary">{{ label }}</label>
         <template v-if="isEditing">
             <select
                 :value="modelValue"
                 @input="handleInput"
-                class="mt-1 block w-full px-4 py-2.5 rounded-lg border border-night-200 bg-white text-night-900 transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 hover:border-night-300 appearance-none cursor-pointer"
+                class="mt-1 input-field appearance-none cursor-pointer"
             >
-                <option v-if="placeholder" value="" disabled>{{ placeholder }}</option>
-                <option 
-                    v-for="option in options" 
-                    :key="option.value" 
+                <option v-if="placeholder" value="" disabled class="bg-bg-muted">{{ placeholder }}</option>
+                <option
+                    v-for="option in options"
+                    :key="option.value"
                     :value="option.value"
+                    class="bg-bg-muted"
                 >
                     {{ option.label }}
                 </option>
             </select>
         </template>
         <template v-else>
-            <p class="mt-1 text-lg text-night-900">{{ displayValue }}</p>
+            <p class="mt-1 text-lg text-text-primary">{{ displayValue }}</p>
         </template>
     </div>
 </template>
