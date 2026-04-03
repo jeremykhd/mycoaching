@@ -17,9 +17,45 @@ export function useExerciseService() {
         return await supabase.from('workout_exercise').insert(exercise).select().single()
     }
 
+    async function getUserExercises(accountId: number) {
+        return await supabase
+            .from('workout_exercise')
+            .select('*')
+            .eq('account_id', accountId)
+            .order('title', { ascending: true })
+    }
+
+    async function getExerciseById(exerciseId: number) {
+        return await supabase
+            .from('workout_exercise')
+            .select('*')
+            .eq('id', exerciseId)
+            .single()
+    }
+
+    async function getExerciseHistory(exerciseId: number) {
+        return await supabase
+            .from('workout_session_set')
+            .select(`
+                *,
+                workout_session_exercise!inner(
+                    workout_exercise_id,
+                    workout_session!inner(
+                        created_at,
+                        workout(title)
+                    )
+                )
+            `)
+            .eq('workout_session_exercise.workout_exercise_id', exerciseId)
+            .order('created_at', { ascending: false })
+    }
+
     return {
         getExercises,
         getExerciseTypes,
-        postExercise
+        postExercise,
+        getUserExercises,
+        getExerciseById,
+        getExerciseHistory,
     }
 }
