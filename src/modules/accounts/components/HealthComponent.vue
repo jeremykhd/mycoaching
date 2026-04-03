@@ -1,34 +1,31 @@
 <script lang="ts" setup>
-import type { Account } from '../models/Account';
-import type { Health } from '../models/Health';
-import { EnumMeasureWeight } from '../models/Health';
-import { 
-  HeartIcon,
+import type { Account } from '../models/Account'
+import type { Health } from '../models/Health'
+import { EnumMeasureWeight } from '../models/Health'
+import {
   PencilSquareIcon,
-  PlusCircleIcon,
   XMarkIcon,
-  CheckIcon
-} from '@heroicons/vue/24/outline';
-import { useAccountStore } from '../store/useAccountStore';
-import { ref, computed, watch } from 'vue';
-import UiInputNumber from '@/shared/ui/inputs/UiInputNumber.vue';
-import UiSelect from '@/shared/ui/select/UiSelect.vue';
-import { useAuthStore } from '@/modules/auth/store/useAuthStore';
+  CheckIcon,
+  HeartIcon,
+  PlusIcon,
+} from '@heroicons/vue/24/outline'
+import { useAccountStore } from '../store/useAccountStore'
+import { ref, computed, watch } from 'vue'
+import { useAuthStore } from '@/modules/auth/store/useAuthStore'
 
-const accountStore = useAccountStore();
-const authStore = useAuthStore();
+const accountStore = useAccountStore()
+const authStore = useAuthStore()
 const account = computed(() => authStore.account)
-const isEditing = ref(false);
+const isEditing = ref(false)
 
 const formData = ref<Partial<Health>>({
   height: account.value?.health?.height || undefined,
   weight: account.value?.health?.weight || undefined,
   target_weight: account.value?.health?.target_weight || undefined,
   target_training: account.value?.health?.target_training || undefined,
-  measure_weight: account.value?.health?.measure_weight || EnumMeasureWeight.weekly
-});
+  measure_weight: account.value?.health?.measure_weight || EnumMeasureWeight.weekly,
+})
 
-// Mettre à jour formData quand account change
 watch(account, (newAccount) => {
   if (newAccount?.health) {
     formData.value = {
@@ -36,28 +33,38 @@ watch(account, (newAccount) => {
       weight: newAccount.health.weight || undefined,
       target_weight: newAccount.health.target_weight || undefined,
       target_training: newAccount.health.target_training || undefined,
-      measure_weight: newAccount.health.measure_weight || EnumMeasureWeight.weekly
-    };
+      measure_weight: newAccount.health.measure_weight || EnumMeasureWeight.weekly,
+    }
   }
-}, { immediate: true });
+}, { immediate: true })
 
 const measureWeightOptions = [
   { value: EnumMeasureWeight.daily, label: 'Quotidien' },
   { value: EnumMeasureWeight.weekly, label: 'Hebdomadaire' },
-  { value: EnumMeasureWeight.monthly, label: 'Mensuel' }
-];
+  { value: EnumMeasureWeight.monthly, label: 'Mensuel' },
+]
 
-const hasHealthData = computed(() => {
-  return account.value?.health?.id
-});
+const hasHealthData = computed(() => account.value?.health?.id)
+
+const bmi = computed(() => {
+  const w = account.value?.health?.weight
+  const h = account.value?.health?.height
+  if (!w || !h) return null
+  return (w / ((h / 100) ** 2)).toFixed(1)
+})
+
+const measureLabel = computed(() => {
+  const val = account.value?.health?.measure_weight
+  return measureWeightOptions.find(o => o.value === val)?.label || 'Non renseigné'
+})
 
 const handleSubmit = async () => {
   if (account.value?.id && account.value?.health?.id) {
-    const updatedAccount = await accountStore.updateHealth(account.value.health.id, formData.value);
-    isEditing.value = false;
+    const updatedAccount = await accountStore.updateHealth(account.value.health.id, formData.value)
+    isEditing.value = false
     authStore.account = updatedAccount as Account
   }
-};
+}
 
 const handleCancel = () => {
   if (account.value?.health) {
@@ -66,182 +73,113 @@ const handleCancel = () => {
       weight: account.value.health.weight || undefined,
       target_weight: account.value.health.target_weight || undefined,
       target_training: account.value.health.target_training || undefined,
-      measure_weight: account.value.health.measure_weight || EnumMeasureWeight.weekly
-    };
+      measure_weight: account.value.health.measure_weight || EnumMeasureWeight.weekly,
+    }
   }
-  isEditing.value = false;
-};
+  isEditing.value = false
+}
 </script>
 
 <template>
-      <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
-        <div class="p-6 border-b border-night-200">
-          <div class="flex items-center space-x-3">
-            <HeartIcon class="h-8 w-8 text-orange-500" />
-            <h2 class="text-xl font-semibold text-night-900">Informations de Santé</h2>
-          </div>
+  <div class="card">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-sm font-semibold text-text-primary">Santé</h2>
+      <button
+        v-if="hasHealthData && !isEditing"
+        @click="isEditing = true"
+        class="p-1.5 rounded-lg hover:bg-white/5 transition-colors press text-accent-400"
+      >
+        <PencilSquareIcon class="h-4 w-4" />
+      </button>
+      <div v-else-if="isEditing" class="flex items-center space-x-1">
+        <button
+          @click="handleCancel"
+          class="p-1.5 rounded-lg hover:bg-white/5 transition-colors press text-text-muted"
+        >
+          <XMarkIcon class="h-4 w-4" />
+        </button>
+        <button
+          @click="handleSubmit"
+          class="p-1.5 rounded-lg hover:bg-white/5 transition-colors press text-accent-400"
+        >
+          <CheckIcon class="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div v-if="!hasHealthData && !isEditing" class="flex flex-col items-center justify-center py-6 text-center">
+      <HeartIcon class="h-10 w-10 text-text-muted mb-3" />
+      <p class="text-sm text-text-secondary mb-1">Aucune donnée de santé</p>
+      <p class="text-xs text-text-muted mb-4">Ajoutez vos informations pour suivre votre progression</p>
+      <button @click="isEditing = true" class="btn-primary text-sm press">
+        <PlusIcon class="h-4 w-4 inline mr-1" />
+        Ajouter
+      </button>
+    </div>
+
+    <!-- Display Mode -->
+    <div v-else-if="!isEditing" class="space-y-3">
+      <div class="grid grid-cols-2 gap-3">
+        <div class="glass-subtle rounded-xl p-3 text-center">
+          <p class="text-xs text-text-muted mb-1">Poids</p>
+          <p class="text-lg font-bold text-text-primary">{{ account?.health?.weight ?? '—' }} <span class="text-xs text-text-muted">kg</span></p>
         </div>
-
-        <div class="p-6">
-          <div v-if="!hasHealthData" class="text-center py-8">
-            <HeartIcon class="mx-auto h-12 w-12 text-night-400" />
-            <h3 class="mt-2 text-lg font-medium text-night-900">Aucune donnée de santé</h3>
-            <p class="mt-1 text-sm text-night-500">
-              Commencez à suivre votre progression en ajoutant vos informations de santé.
-            </p>
-            <div class="mt-6">
-              <button
-                @click="isEditing = true"
-                class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
-              >
-                <PlusCircleIcon class="h-5 w-5 mr-2" />
-                Ajouter mes informations
-              </button>
-            </div>
-          </div>
-
-          <template v-else>
-            <div class="flex justify-end mb-6">
-              <button
-                @click="isEditing = true"
-                :disabled="isEditing"
-                :class="[
-                  'inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500',
-                  isEditing 
-                    ? 'bg-orange-400 cursor-not-allowed'
-                    : 'bg-orange-600 hover:bg-orange-700'
-                ]"
-              >
-                <PencilSquareIcon class="h-5 w-5 mr-2" />
-                Modifier
-              </button>
-            </div>
-
-            <div v-if="isEditing" class="mb-6">
-              <form @submit.prevent="handleSubmit" class="space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <!-- Statistiques de Santé -->
-                  <div class="bg-night-50 rounded-xl p-6">
-                    <h3 class="text-lg font-medium text-night-900 mb-6">Statistiques de Santé</h3>
-                    <div class="space-y-4">
-                      <UiInputNumber
-                        label="Poids (kg)"
-                        v-model="formData.weight"
-                        :isEditing="isEditing"
-                        step="0.1"
-                        min="0"
-                      />
-                      <UiInputNumber
-                        label="Taille (cm)"
-                        v-model="formData.height"
-                        :isEditing="isEditing"
-                        min="0"
-                      />
-                      <UiSelect
-                        label="Fréquence de mesure"
-                        v-model="formData.measure_weight"
-                        :options="measureWeightOptions"
-                        :isEditing="isEditing"
-                        placeholder="Sélectionnez la fréquence de mesure"
-                      />
-                    </div>
-                  </div>
-
-                  <!-- Objectifs de Santé -->
-                  <div class="bg-night-50 rounded-xl p-6">
-                    <h3 class="text-lg font-medium text-night-900 mb-6">Objectifs de Santé</h3>
-                    <div class="space-y-4">
-                      <UiInputNumber
-                        label="Objectif de Poids (kg)"
-                        v-model="formData.target_weight"
-                        :isEditing="isEditing"
-                        step="0.1"
-                        min="0"
-                      />
-                      <UiInputNumber
-                        label="Niveau d'Activité (sessions/semaine)"
-                        v-model="formData.target_training"
-                        :isEditing="isEditing"
-                        min="0"
-                        max="7"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Boutons d'action -->
-                <div class="flex justify-end space-x-4">
-                  <button
-                    type="button"
-                    @click="handleCancel"
-                    class="inline-flex items-center px-4 py-2 border border-night-300 rounded-lg shadow-sm text-sm font-medium text-night-700 bg-white hover:bg-night-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
-                  >
-                    <XMarkIcon class="h-5 w-5 mr-2" />
-                    Annuler
-                  </button>
-                  <button
-                    type="submit"
-                    class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
-                  >
-                    <CheckIcon class="h-5 w-5 mr-2" />
-                    Enregistrer
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <!-- Health Stats -->
-              <div class="bg-night-50 rounded-xl p-6">
-                <h3 class="text-lg font-medium text-night-900 mb-6">Statistiques de Santé</h3>
-                <div class="space-y-6">
-                  <UiInputNumber
-                    label="Poids"
-                    :modelValue="account?.health?.weight ?? 0"
-                    :isEditing="false"
-                  />
-                  <UiInputNumber
-                    label="Taille"
-                    :modelValue="account?.health?.height ?? 0"
-                    :isEditing="false"
-                  />
-                  <div>
-                    <label class="block text-sm font-medium text-night-700">IMC</label>
-                    <p id="IMC" class="mt-1 text-lg text-night-900">
-                      {{ account?.health?.weight && account?.health?.height 
-                        ? ((account?.health.weight / ((account?.health.height / 100) ** 2)).toFixed(1))
-                        : 'Non calculable' }}
-                    </p>
-                  </div>
-                  <div>
-                    <UiSelect
-                      label="Fréquence de mesure"
-                      :modelValue="account?.health?.measure_weight"
-                      :options="measureWeightOptions"
-                      :isEditing="false"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <!-- Health Goals -->
-              <div class="bg-night-50 rounded-xl p-6">
-                <h3 class="text-lg font-medium text-night-900 mb-6">Objectifs de Santé</h3>
-                <div class="space-y-6">
-                  <UiInputNumber
-                    label="Objectif de Poids"
-                    :modelValue="account?.health?.target_weight ?? 0"
-                    :isEditing="false"
-                  />
-                  <UiInputNumber
-                    label="Niveau d'Activité"
-                    :modelValue="account?.health?.target_training ?? 0"
-                    :isEditing="false"
-                  />
-                </div>
-              </div>
-            </div>
-          </template>
+        <div class="glass-subtle rounded-xl p-3 text-center">
+          <p class="text-xs text-text-muted mb-1">Taille</p>
+          <p class="text-lg font-bold text-text-primary">{{ account?.health?.height ?? '—' }} <span class="text-xs text-text-muted">cm</span></p>
         </div>
       </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div class="glass-subtle rounded-xl p-3 text-center">
+          <p class="text-xs text-text-muted mb-1">IMC</p>
+          <p class="text-lg font-bold text-accent-400">{{ bmi ?? '—' }}</p>
+        </div>
+        <div class="glass-subtle rounded-xl p-3 text-center">
+          <p class="text-xs text-text-muted mb-1">Obj. poids</p>
+          <p class="text-lg font-bold text-text-primary">{{ account?.health?.target_weight ?? '—' }} <span class="text-xs text-text-muted">kg</span></p>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-1">
+        <p class="text-xs text-text-muted">Fréquence de mesure</p>
+        <span class="badge badge-neutral">{{ measureLabel }}</span>
+      </div>
+      <div class="flex items-center justify-between">
+        <p class="text-xs text-text-muted">Activité cible</p>
+        <span class="badge badge-accent">{{ account?.health?.target_training ?? '—' }} sessions/sem.</span>
+      </div>
+    </div>
+
+    <!-- Edit Mode -->
+    <form v-else @submit.prevent="handleSubmit" class="space-y-3">
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs text-text-muted mb-1 block">Poids (kg)</label>
+          <input v-model.number="formData.weight" type="number" step="0.1" min="0" class="input-field text-sm" />
+        </div>
+        <div>
+          <label class="text-xs text-text-muted mb-1 block">Taille (cm)</label>
+          <input v-model.number="formData.height" type="number" min="0" class="input-field text-sm" />
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs text-text-muted mb-1 block">Objectif poids (kg)</label>
+          <input v-model.number="formData.target_weight" type="number" step="0.1" min="0" class="input-field text-sm" />
+        </div>
+        <div>
+          <label class="text-xs text-text-muted mb-1 block">Sessions/sem.</label>
+          <input v-model.number="formData.target_training" type="number" min="0" max="7" class="input-field text-sm" />
+        </div>
+      </div>
+      <div>
+        <label class="text-xs text-text-muted mb-1 block">Fréquence de mesure</label>
+        <select v-model="formData.measure_weight" class="input-field text-sm bg-bg-muted">
+          <option v-for="opt in measureWeightOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+        </select>
+      </div>
+    </form>
+  </div>
 </template>
