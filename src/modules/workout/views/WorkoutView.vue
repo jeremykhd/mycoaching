@@ -1,139 +1,170 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { ArrowLeftIcon } from '@heroicons/vue/24/outline'
-import CalendarStrip from '../components/CalendarStrip.vue'
+import { onMounted, computed } from 'vue'
+import { useAuthStore } from '@/modules/auth/store/useAuthStore'
+import { useProgramStore } from '../store/useProgramStore'
+import ProgramCard from '../components/ProgramCard.vue'
+import MonthCalendar from '../components/MonthCalendar.vue'
 import SessionCard from '../components/SessionCard.vue'
+import {
+  ArrowTopRightOnSquareIcon,
+  PlusIcon,
+  CalendarDaysIcon,
+  ListBulletIcon,
+} from '@heroicons/vue/24/outline'
 
-// Fake data
-const todaySessions = [
-  {
-    id: 1,
-    title: 'Pectoraux & Triceps',
-    badges: [
-      { label: '+5% volume', type: 'accent' as const },
-      { label: 'Durée: 1h05m', type: 'neutral' as const },
-      { label: 'Volume: ', type: 'neutral' as const },
-    ],
-    totalWeight: '9,200 kg',
-  },
-  {
-    id: 2,
-    title: 'Cardio Léger',
-    badges: [
-      { label: 'Durée: 0h30m', type: 'neutral' as const },
-      { label: 'Calories: ', type: 'neutral' as const },
-    ],
-    totalWeight: '300 kcal',
-  },
-]
+const authStore = useAuthStore()
+const programStore = useProgramStore()
 
-const pastSessions = [
-  {
-    id: 3,
-    title: 'Leg Day',
-    date: 'Dimanche 12 Mai',
-    badges: [
-      { label: 'Record personnel sur le Squat!', type: 'accent' as const },
-      { label: 'Volume: ', type: 'neutral' as const },
-    ],
-    totalWeight: '12,500 kg',
-  },
-  {
-    id: 4,
-    title: 'Dos & Biceps',
-    date: 'Vendredi 10 Mai',
-    badges: [
-      { label: '-2% volume', type: 'neutral' as const },
-      { label: 'Durée: 1h20m', type: 'neutral' as const },
-      { label: 'Volume: ', type: 'neutral' as const },
-    ],
-    totalWeight: '7,800 kg',
-  },
-]
+const accountId = computed(() => authStore.account?.id)
 
-const selectedDate = ref(new Date())
-
-const selectedDateLabel = computed(() => {
-  const d = selectedDate.value
-  const today = new Date()
-  const isToday =
-    d.getDate() === today.getDate() &&
-    d.getMonth() === today.getMonth() &&
-    d.getFullYear() === today.getFullYear()
-
-  const formatted = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
-  return { isToday, formatted }
+onMounted(async () => {
+  if (!accountId.value) return
+  await Promise.all([
+    programStore.fetchActiveProgram(accountId.value),
+    programStore.fetchWorkouts(accountId.value),
+    programStore.fetchSessions(accountId.value),
+  ])
 })
 
-function onDateSelect(date: Date) {
-  selectedDate.value = date
-}
+// Compute planned dates from active program
+const plannedDates = computed(() => {
+  const program = programStore.activeProgram
+  if (!program?.program_workouts?.length) return []
+
+  const start = new Date(program.start_date)
+  const dates: string[] = []
+
+  for (const pw of program.program_workouts) {
+    // For each week of the program, compute the actual date
+    const weekOffset = (pw.week_number - 1) * 7
+    // day_of_week: 1=Mon, 7=Sun. JS getDay: 0=Sun, 1=Mon
+    const dayOffset = pw.day_of_week - 1 // 0=Mon
+    const startDayOfWeek = start.getDay()
+    const startMondayOffset = startDayOfWeek === 0 ? -6 : 1 - startDayOfWeek
+    const monday = new Date(start)
+    monday.setDate(start.getDate() + startMondayOffset)
+
+    const targetDate = new Date(monday)
+    targetDate.setDate(monday.getDate() + weekOffset + dayOffset)
+    dates.push(targetDate.toISOString().split('T')[0])
+  }
+
+  return dates
+})
+
+// Compute completed dates from sessions
+const completedDates = computed(() => {
+  return programStore.sessions.map(s => {
+    return new Date(s.created_at).toISOString().split('T')[0]
+  })
+})
+
+// Workouts for display (latest 3)
+const recentWorkouts = computed(() => {
+  return programStore.workouts.slice(0, 3)
+})
+
+// Exercise count
+const exerciseCount = computed(() => {
+  const exerciseIds = new Set<number>()
+  for (const w of programStore.workouts) {
+    if (w.exercises) {
+      for (const e of w.exercises) {
+        exerciseIds.add(e.id)
+      }
+    }
+  }
+  return exerciseIds.size
+})
 </script>
 
 <template>
-  <div class="space-y-6 max-w-lg mx-auto">
+  <div class="space-y-4 max-w-lg mx-auto">
     <!-- Header -->
-    <div class="flex items-center space-x-3 animate-fade-in">
-      <button @click="$router.back()" class="p-1.5 rounded-lg hover:bg-white/5 transition-colors press">
-        <ArrowLeftIcon class="h-5 w-5 text-text-secondary" />
-      </button>
-      <h1 class="text-lg font-bold text-text-primary">Historique des Séances</h1>
+    <div class="flex items-center justify-between animate-fade-in">
+      <h1 class="text-lg font-bold text-text-primary">Programmes</h1>
+    </div>
+
+    <!-- Active Program -->
+    <div class="animate-fade-in-up stagger-1">
+      <ProgramCard
+        v-if="programStore.activeProgram"
+        :program="programStore.activeProgram"
+      />
+      <!-- Empty state -->
+      <div v-else class="card flex flex-col items-center justify-center py-8 text-center">
+        <CalendarDaysIcon class="h-10 w-10 text-text-muted mb-3" />
+        <p class="text-sm text-text-secondary mb-1">Aucun programme actif</p>
+        <p class="text-xs text-text-muted mb-4">Créez un programme pour planifier vos entraînements</p>
+        <button class="btn-primary text-sm press">
+          <PlusIcon class="h-4 w-4 inline mr-1" />
+          Créer un programme
+        </button>
+      </div>
     </div>
 
     <!-- Calendar -->
-    <div class="animate-fade-in-up stagger-1">
-      <CalendarStrip @select="onDateSelect" />
-    </div>
-
-    <!-- Today's Sessions -->
     <div class="animate-fade-in-up stagger-2">
-      <div class="flex items-center justify-between mb-3">
-        <h2 class="text-sm font-semibold text-text-primary">
-          {{ selectedDateLabel.isToday ? "Aujourd'hui" : '' }}
-        </h2>
-        <span class="text-xs text-text-muted capitalize">{{ selectedDateLabel.formatted }}</span>
-      </div>
-      <div class="space-y-3">
-        <div
-          v-for="(session, i) in todaySessions"
-          :key="session.id"
-          class="card press-sm animate-fade-in-up"
-          :class="`stagger-${i + 3}`"
-        >
-          <SessionCard
-            :title="session.title"
-            :badges="session.badges"
-            :total-weight="session.totalWeight"
-            :to="`/workout/session/${session.id}`"
-          />
-        </div>
-      </div>
+      <MonthCalendar
+        :planned-dates="plannedDates"
+        :completed-dates="completedDates"
+      />
     </div>
 
-    <!-- Past Sessions -->
-    <div class="animate-fade-in-up stagger-5">
+    <!-- Séances (Workouts) -->
+    <div class="animate-fade-in-up stagger-3">
       <div class="flex items-center justify-between mb-3">
-        <h2 class="text-sm font-semibold text-text-primary">Séances passées</h2>
-        <button class="text-xs text-accent-400 hover:text-accent-300 transition-colors">
+        <h2 class="text-sm font-semibold text-text-primary">Séances</h2>
+        <RouterLink to="/workout" class="text-xs text-accent-400 hover:text-accent-300 transition-colors">
           Voir tout
-        </button>
+        </RouterLink>
       </div>
-      <div class="space-y-3">
-        <div
-          v-for="(session, i) in pastSessions"
-          :key="session.id"
-          class="card press-sm animate-fade-in-up"
-          :class="`stagger-${i + 6}`"
-        >
-          <p class="text-xs text-text-muted mb-1 px-3">{{ session.date }}</p>
+
+      <div v-if="recentWorkouts.length" class="space-y-2">
+        <div v-for="(workout, i) in recentWorkouts" :key="workout.id" class="card press-sm">
           <SessionCard
-            :title="session.title"
-            :badges="session.badges"
-            :total-weight="session.totalWeight"
-            :to="`/workout/session/${session.id}`"
+            :title="workout.title"
+            :subtitle="workout.subtitle || undefined"
+            :badges="workout.exercises?.length
+              ? [{ label: `${workout.exercises.length} exercices`, type: 'neutral' as const }]
+              : []"
+            :to="`/workout/session/${workout.id}`"
           />
         </div>
       </div>
+
+      <!-- Empty + Create -->
+      <div v-else class="card flex flex-col items-center justify-center py-6 text-center">
+        <p class="text-sm text-text-secondary mb-1">Aucune séance créée</p>
+        <p class="text-xs text-text-muted mb-4">Créez des séances pour les ajouter à votre programme</p>
+      </div>
+
+      <button class="mt-3 w-full flex items-center justify-center space-x-2 py-3 rounded-xl border border-dashed border-white/[0.12] text-accent-400 hover:bg-white/5 transition-all duration-200 press">
+        <PlusIcon class="h-4 w-4" />
+        <span class="text-sm font-medium">Créer une séance</span>
+      </button>
+    </div>
+
+    <!-- Exercices -->
+    <div class="animate-fade-in-up stagger-4">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-semibold text-text-primary">Exercices</h2>
+        <RouterLink to="/exercises" class="text-accent-400 hover:text-accent-300 transition-colors">
+          <ArrowTopRightOnSquareIcon class="h-4 w-4" />
+        </RouterLink>
+      </div>
+      <RouterLink to="/exercises" class="card flex items-center justify-between press-sm">
+        <div class="flex items-center space-x-3">
+          <div class="w-9 h-9 rounded-full bg-accent-500/15 flex items-center justify-center">
+            <ListBulletIcon class="h-4 w-4 text-accent-400" />
+          </div>
+          <div>
+            <p class="text-sm font-medium text-text-primary">Ma bibliothèque</p>
+            <p class="text-xs text-text-muted">{{ exerciseCount }} exercice{{ exerciseCount > 1 ? 's' : '' }} utilisé{{ exerciseCount > 1 ? 's' : '' }}</p>
+          </div>
+        </div>
+        <ArrowTopRightOnSquareIcon class="h-4 w-4 text-text-muted" />
+      </RouterLink>
     </div>
   </div>
 </template>

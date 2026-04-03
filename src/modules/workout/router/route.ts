@@ -1,6 +1,7 @@
 import type { RouteRecordRaw } from 'vue-router'
 import WorkoutView from '../views/WorkoutView.vue'
 import ExercisesView from '../views/ExercisesView.vue'
+import ExerciseDetailView from '../views/ExerciseDetailView.vue'
 import WorkoutSessionDetailView from '../views/WorkoutSessionDetailView.vue'
 import WorkoutSessionEditView from '../views/WorkoutSessionEditView.vue'
 
@@ -32,4 +33,11 @@ export const ExercisesRoute: RouteRecordRaw = {
     meta: { requiresAuth: true },
     component: ExercisesView,
     children: []
+}
+
+export const exerciseDetailRoute: RouteRecordRaw = {
+    path: '/exercises/:id',
+    name: 'exercise-detail',
+    meta: { requiresAuth: true },
+    component: ExerciseDetailView,
 }

@@ -26,6 +26,10 @@ auth.users (Supabase)
             │           ├── account_id → account (custom exercises)
             │           └── muscle_group, equipment, image_url...
             │
+            ├── program (account_id → account)
+            │     └── program_workout
+            │           └── workout_id → workout
+            │
             └── workout_session (account_id → account)
                   └── workout_session_exercise
                         └── workout_session_set (actual performance)
@@ -187,6 +191,37 @@ Junction table — workouts assigned to groups.
 
 ---
 
+### `program`
+Training programs with defined duration and schedule.
+
+| Column | Type | Nullable | Notes |
+|--------|------|----------|-------|
+| `id` | bigint | NO | PK |
+| `account_id` | bigint | NO | FK → `account` (CASCADE) |
+| `title` | varchar | NO | |
+| `description` | text | YES | |
+| `duration_weeks` | smallint | NO | default 4 |
+| `start_date` | date | NO | |
+| `end_date` | date | NO | |
+| `is_active` | boolean | NO | default true |
+| `created_at` | timestamptz | NO | |
+
+---
+
+### `program_workout`
+Maps workouts to specific days within a program.
+
+| Column | Type | Nullable | Notes |
+|--------|------|----------|-------|
+| `id` | bigint | NO | PK |
+| `program_id` | bigint | NO | FK → `program` (CASCADE) |
+| `workout_id` | bigint | NO | FK → `workout` (CASCADE) |
+| `day_of_week` | smallint | NO | 1=Monday, 7=Sunday |
+| `week_number` | smallint | NO | ≥ 1 |
+| `created_at` | timestamptz | NO | |
+
+---
+
 ### `workout_session`
 An actual workout performed by a user.
 
@@ -254,6 +289,9 @@ Each set performed — the actual performance data for progression tracking.
 | `workout_session_exercise` | `workout_session_id` | `workout_session` | many-to-1 (CASCADE) |
 | `workout_session_exercise` | `workout_exercise_id` | `workout_exercise` | many-to-1 |
 | `workout_session_set` | `workout_session_exercise_id` | `workout_session_exercise` | many-to-1 (CASCADE) |
+| `program` | `account_id` | `account` | many-to-1 (CASCADE) |
+| `program_workout` | `program_id` | `program` | many-to-1 (CASCADE) |
+| `program_workout` | `workout_id` | `workout` | many-to-1 (CASCADE) |
 
 ---
 
