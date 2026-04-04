@@ -1,37 +1,32 @@
 export interface Exercise {
     id: number
     title: string
-    subtitle: string
-    type: ExerciseType
-    body_weight: boolean
-    weight: number
-    repetitions: number
-    set: number
-    rest: number
-    workout_id: number | null
+    subtitle: string | null
     muscle_group: string | null
     secondary_muscles: string | null
     equipment: string | null
     image_url: string | null
     instructions: string | null
+    body_weight: boolean
     is_custom: boolean
     account_id: number | null
+    type_id: number | null
+    type?: ExerciseType
+    created_at: string
 }
+
 export interface ExerciseForm {
     title: string
-    subtitle: string
-    type: number
-    body_weight: boolean
-    weight: number
-    repetitions: number
-    set: number
-    rest: number
-    muscle_group?: string
-    secondary_muscles?: string
-    equipment?: string
-    image_url?: string
-    instructions?: string
+    subtitle?: string | null
+    muscle_group?: string | null
+    secondary_muscles?: string | null
+    equipment?: string | null
+    image_url?: string | null
+    instructions?: string | null
+    body_weight?: boolean
     is_custom?: boolean
+    account_id?: number
+    type_id?: number | null
 }
 
 export interface ExerciseType {

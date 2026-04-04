@@ -5,7 +5,6 @@ export interface WorkoutSession {
   account_id: number
   workout_id: number
   notes: string | null
-  started_at: string
   finished_at: string | null
   created_at: string
 }

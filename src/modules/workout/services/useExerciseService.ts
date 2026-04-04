@@ -1,36 +1,60 @@
 import { supabase } from '@/shared/services/supabaseClient'
-import type { PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-js'
 import type { Exercise, ExerciseForm, ExerciseType } from '../models/Exercise'
 
 export function useExerciseService() {
-    async function getExercises(): Promise<PostgrestResponse<Exercise>> {
-        return await supabase.from('workout_exercise').select('*')
+    async function getExerciseTypes() {
+        return await supabase
+            .from('workout_exercise_type')
+            .select('*')
+            .order('name')
     }
 
-    async function getExerciseTypes(): Promise<PostgrestResponse<ExerciseType>> {
-        return await supabase.from('workout_exercise_type').select('*')
-    }
-
-    async function postExercise(
-        exercise: ExerciseForm
-    ): Promise<PostgrestSingleResponse<Exercise>> {
-        return await supabase.from('workout_exercise').insert(exercise).select().single()
+    async function createExerciseType(name: string) {
+        return await supabase
+            .from('workout_exercise_type')
+            .insert({ name })
+            .select()
+            .single()
     }
 
     async function getUserExercises(accountId: number) {
         return await supabase
-            .from('workout_exercise')
-            .select('*')
+            .from('exercise')
+            .select('*, type:workout_exercise_type(*)')
             .eq('account_id', accountId)
             .order('title', { ascending: true })
     }
 
     async function getExerciseById(exerciseId: number) {
         return await supabase
-            .from('workout_exercise')
-            .select('*')
+            .from('exercise')
+            .select('*, type:workout_exercise_type(*)')
             .eq('id', exerciseId)
             .single()
+    }
+
+    async function createExercise(exercise: ExerciseForm) {
+        return await supabase
+            .from('exercise')
+            .insert(exercise)
+            .select('*, type:workout_exercise_type(*)')
+            .single()
+    }
+
+    async function updateExercise(exerciseId: number, updates: Partial<ExerciseForm>) {
+        return await supabase
+            .from('exercise')
+            .update(updates)
+            .eq('id', exerciseId)
+            .select('*, type:workout_exercise_type(*)')
+            .single()
+    }
+
+    async function deleteExercise(exerciseId: number) {
+        return await supabase
+            .from('exercise')
+            .delete()
+            .eq('id', exerciseId)
     }
 
     async function getExerciseHistory(exerciseId: number) {
@@ -39,23 +63,25 @@ export function useExerciseService() {
             .select(`
                 *,
                 workout_session_exercise!inner(
-                    workout_exercise_id,
+                    exercise_id,
                     workout_session!inner(
                         created_at,
                         workout(title)
                     )
                 )
             `)
-            .eq('workout_session_exercise.workout_exercise_id', exerciseId)
+            .eq('workout_session_exercise.exercise_id', exerciseId)
             .order('created_at', { ascending: false })
     }
 
     return {
-        getExercises,
         getExerciseTypes,
-        postExercise,
+        createExerciseType,
         getUserExercises,
         getExerciseById,
+        createExercise,
+        updateExercise,
+        deleteExercise,
         getExerciseHistory,
     }
 }

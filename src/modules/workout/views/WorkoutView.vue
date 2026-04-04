@@ -64,13 +64,13 @@ const recentWorkouts = computed(() => {
   return programStore.workouts.slice(0, 3)
 })
 
-// Exercise count
+// Exercise count (unique exercises across workouts)
 const exerciseCount = computed(() => {
   const exerciseIds = new Set<number>()
   for (const w of programStore.workouts) {
     if (w.exercises) {
-      for (const e of w.exercises) {
-        exerciseIds.add(e.id)
+      for (const we of w.exercises) {
+        exerciseIds.add(we.exercise_id)
       }
     }
   }
@@ -96,10 +96,10 @@ const exerciseCount = computed(() => {
         <CalendarDaysIcon class="h-10 w-10 text-text-muted mb-3" />
         <p class="text-sm text-text-secondary mb-1">Aucun programme actif</p>
         <p class="text-xs text-text-muted mb-4">Créez un programme pour planifier vos entraînements</p>
-        <button class="btn-primary text-sm press">
+        <RouterLink to="/workout/program/create" class="btn-primary text-sm press">
           <PlusIcon class="h-4 w-4 inline mr-1" />
           Créer un programme
-        </button>
+        </RouterLink>
       </div>
     </div>
 
@@ -115,7 +115,7 @@ const exerciseCount = computed(() => {
     <div class="animate-fade-in-up stagger-3">
       <div class="flex items-center justify-between mb-3">
         <h2 class="text-sm font-semibold text-text-primary">Séances</h2>
-        <RouterLink to="/workout" class="text-xs text-accent-400 hover:text-accent-300 transition-colors">
+        <RouterLink to="/workout/sessions" class="text-xs text-accent-400 hover:text-accent-300 transition-colors">
           Voir tout
         </RouterLink>
       </div>
@@ -139,10 +139,13 @@ const exerciseCount = computed(() => {
         <p class="text-xs text-text-muted mb-4">Créez des séances pour les ajouter à votre programme</p>
       </div>
 
-      <button class="mt-3 w-full flex items-center justify-center space-x-2 py-3 rounded-xl border border-dashed border-white/[0.12] text-accent-400 hover:bg-white/5 transition-all duration-200 press">
+      <RouterLink
+        to="/workout/create"
+        class="mt-3 w-full flex items-center justify-center space-x-2 py-3 rounded-xl border border-dashed border-white/[0.12] text-accent-400 hover:bg-white/5 transition-all duration-200 press"
+      >
         <PlusIcon class="h-4 w-4" />
         <span class="text-sm font-medium">Créer une séance</span>
-      </button>
+      </RouterLink>
     </div>
 
     <!-- Exercices -->

@@ -1,9 +1,13 @@
 import type { RouteRecordRaw } from 'vue-router'
 import WorkoutView from '../views/WorkoutView.vue'
+import WorkoutListView from '../views/WorkoutListView.vue'
+import WorkoutCreateView from '../views/WorkoutCreateView.vue'
 import ExercisesView from '../views/ExercisesView.vue'
 import ExerciseDetailView from '../views/ExerciseDetailView.vue'
 import WorkoutSessionDetailView from '../views/WorkoutSessionDetailView.vue'
 import WorkoutSessionEditView from '../views/WorkoutSessionEditView.vue'
+import ProgramCreateView from '../views/ProgramCreateView.vue'
+import LiveSessionView from '../views/LiveSessionView.vue'
 
 export const workoutRoute: RouteRecordRaw = {
     path: '/workout',
@@ -11,6 +15,27 @@ export const workoutRoute: RouteRecordRaw = {
     meta: { requiresAuth: true },
     component: WorkoutView,
     children: []
+}
+
+export const workoutListRoute: RouteRecordRaw = {
+    path: '/workout/sessions',
+    name: 'workout-list',
+    meta: { requiresAuth: true },
+    component: WorkoutListView,
+}
+
+export const workoutCreateRoute: RouteRecordRaw = {
+    path: '/workout/create',
+    name: 'workout-create',
+    meta: { requiresAuth: true },
+    component: WorkoutCreateView,
+}
+
+export const programCreateRoute: RouteRecordRaw = {
+    path: '/workout/program/create',
+    name: 'program-create',
+    meta: { requiresAuth: true },
+    component: ProgramCreateView,
 }
 
 export const workoutSessionDetailRoute: RouteRecordRaw = {
@@ -33,6 +58,20 @@ export const ExercisesRoute: RouteRecordRaw = {
     meta: { requiresAuth: true },
     component: ExercisesView,
     children: []
+}
+
+export const liveSessionRoute: RouteRecordRaw = {
+    path: '/workout/live/:workoutId',
+    name: 'live-session',
+    meta: { requiresAuth: true },
+    component: LiveSessionView,
+}
+
+export const resumeSessionRoute: RouteRecordRaw = {
+    path: '/workout/live/session/:sessionId',
+    name: 'resume-session',
+    meta: { requiresAuth: true },
+    component: LiveSessionView,
 }
 
 export const exerciseDetailRoute: RouteRecordRaw = {

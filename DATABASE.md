@@ -138,34 +138,48 @@ Workout templates created by a user.
 |--------|------|----------|-------|
 | `id` | bigint | NO | PK |
 | `account_id` | bigint | YES | FK → `account` (creator) |
+| `type_id` | bigint | YES | FK → `workout_exercise_type` (séance type) |
 | `title` | varchar | YES | |
 | `subtitle` | varchar | YES | |
 | `created_at` | timestamptz | NO | |
 
 ---
 
-### `workout_exercise`
-Exercises within a workout template. Supports both imported (API) and custom exercises.
+### `exercise`
+Exercise catalog. Each exercise is a unique definition (name, muscles, image). Imported from wger API (`is_custom: false`) or created by user (`is_custom: true`).
 
 | Column | Type | Nullable | Notes |
 |--------|------|----------|-------|
 | `id` | bigint | NO | PK |
-| `workout_id` | bigint | YES | FK → `workout` |
-| `type` | bigint | YES | FK → `workout_exercise_type` |
-| `account_id` | bigint | YES | FK → `account` (null = global, set = personal) |
-| `title` | varchar | YES | |
+| `title` | varchar | NO | |
 | `subtitle` | varchar | YES | |
-| `body_weight` | boolean | YES | true = no external weight |
-| `weight` | real | YES | kg |
-| `repetitions` | integer | YES | target reps per set |
-| `set` | smallint | YES | target number of sets |
-| `rest` | smallint | YES | rest in seconds |
 | `muscle_group` | varchar | YES | primary muscle group |
-| `secondary_muscles` | varchar | YES | secondary muscles |
-| `equipment` | varchar | YES | required equipment |
-| `image_url` | text | YES | exercise GIF/image URL |
-| `instructions` | text | YES | exercise description |
-| `is_custom` | boolean | NO | default true. false = imported from API |
+| `secondary_muscles` | varchar | YES | |
+| `equipment` | varchar | YES | |
+| `image_url` | text | YES | exercise image URL |
+| `instructions` | text | YES | |
+| `body_weight` | boolean | NO | default false |
+| `is_custom` | boolean | NO | default true. false = imported from wger API |
+| `account_id` | bigint | YES | FK → `account` (owner) |
+| `type_id` | bigint | YES | FK → `workout_exercise_type` |
+| `created_at` | timestamptz | NO | |
+
+---
+
+### `workout_exercise`
+Pivot table linking exercises to workouts with workout-specific config (sets, reps, weight, rest).
+
+| Column | Type | Nullable | Notes |
+|--------|------|----------|-------|
+| `id` | bigint | NO | PK |
+| `workout_id` | bigint | NO | FK → `workout` (ON DELETE CASCADE) |
+| `exercise_id` | bigint | NO | FK → `exercise` (ON DELETE CASCADE) |
+| `set` | smallint | YES | target number of sets (default 3) |
+| `repetitions` | integer | YES | target reps per set (default 10) |
+| `weight` | real | YES | kg (default 0) |
+| `rest` | smallint | YES | rest in seconds (default 60) |
+| `order` | smallint | YES | exercise order in workout |
+| `created_at` | timestamptz | NO | |
 
 ---
 

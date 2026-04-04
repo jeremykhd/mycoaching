@@ -24,7 +24,6 @@ onMounted(async () => {
   loading.value = false
 })
 
-// Unique muscle groups from exercises
 const muscleGroups = computed(() => {
   const groups = new Set<string>()
   exercises.value.forEach(e => {
@@ -33,7 +32,6 @@ const muscleGroups = computed(() => {
   return ['Tout', ...Array.from(groups).sort()]
 })
 
-// Filtered exercises
 const filtered = computed(() => {
   let result = exercises.value
 
@@ -111,7 +109,15 @@ const filtered = computed(() => {
           </div>
           <div class="min-w-0">
             <p class="text-sm font-medium text-text-primary truncate">{{ exercise.title }}</p>
-            <p v-if="exercise.muscle_group" class="text-xs text-accent-400">{{ exercise.muscle_group }}</p>
+            <div class="flex items-center gap-1.5 mt-0.5">
+              <p v-if="exercise.muscle_group" class="text-xs text-accent-400">{{ exercise.muscle_group }}</p>
+              <span
+                v-if="exercise.is_custom"
+                class="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-white/[0.06] text-text-muted"
+              >
+                Custom
+              </span>
+            </div>
           </div>
         </div>
         <ChevronRightIcon class="h-4 w-4 text-text-muted flex-shrink-0 ml-2" />

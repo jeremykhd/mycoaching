@@ -4,35 +4,27 @@ import { ref } from 'vue'
 import { useExerciseService } from '../services/useExerciseService'
 
 export const useWorkoutStore = defineStore('workout', () => {
-    const { getExercises, getExerciseTypes } = useExerciseService()
+    const { getUserExercises, getExerciseTypes } = useExerciseService()
     const exercises = ref<Exercise[]>([])
     const exerciseTypes = ref<ExerciseType[]>([])
 
-    const fetchExercises = async () => {
-        console.log('...fetching exercises:')
+    const fetchExercises = async (accountId: number) => {
         try {
-            const { data, error, status } = await getExercises()
-
-            console.log('data exercises:', data)
-            console.log('status:', status)
+            const { data, error } = await getUserExercises(accountId)
             if (error) throw new Error(error.message)
-            exercises.value = data || []
+            exercises.value = (data as Exercise[]) || []
         } catch (e) {
-            console.log(e)
+            console.error(e)
         }
     }
 
     const fetchExerciseTypes = async () => {
-        console.log('...fetching exercises:')
-
         try {
-            const { data, error, status } = await getExerciseTypes()
-            console.log('data exercises:', data)
-            console.log('status:', status)
+            const { data, error } = await getExerciseTypes()
             if (error) throw new Error(error.message)
-            exerciseTypes.value = data || []
+            exerciseTypes.value = (data as ExerciseType[]) || []
         } catch (e) {
-            console.log(e)
+            console.error(e)
         }
     }
 
