@@ -35,15 +35,13 @@ const formattedDates = computed(() => {
 </script>
 
 <template>
-  <div class="card">
+  <RouterLink :to="`/workout/program/${program.id}`" class="card block press-sm">
     <div class="flex items-center justify-between mb-3">
       <div>
         <h3 class="text-sm font-semibold text-text-primary">{{ program.title }}</h3>
         <p v-if="program.description" class="text-xs text-text-muted mt-0.5">{{ program.description }}</p>
       </div>
-      <RouterLink to="/workout" class="text-accent-400 hover:text-accent-300 transition-colors">
-        <ArrowTopRightOnSquareIcon class="h-4 w-4" />
-      </RouterLink>
+      <ArrowTopRightOnSquareIcon class="h-4 w-4 text-accent-400" />
     </div>
 
     <!-- Progress -->
@@ -62,5 +60,5 @@ const formattedDates = computed(() => {
 
     <!-- Dates -->
     <p class="text-[10px] text-text-muted">{{ formattedDates }}</p>
-  </div>
+  </RouterLink>
 </template>

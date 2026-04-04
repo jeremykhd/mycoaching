@@ -4,7 +4,7 @@ import { useAuthStore } from '@/modules/auth/store/useAuthStore'
 import LoginView from '@/modules/auth/views/LoginView.vue'
 import VerifyOTPView from '@/modules/auth/views/VerifyOTPView.vue'
 import CreateAccountView from '@/modules/accounts/views/CreateAccountView.vue'
-import { ExercisesRoute, exerciseDetailRoute, workoutRoute, workoutListRoute, workoutCreateRoute, programCreateRoute, workoutSessionDetailRoute, workoutSessionEditRoute, liveSessionRoute, resumeSessionRoute } from '@/modules/workout/router/route'
+import { ExercisesRoute, exerciseDetailRoute, workoutRoute, workoutListRoute, workoutCreateRoute, programCreateRoute, programDetailRoute, programEditRoute, workoutSessionDetailRoute, workoutSessionEditRoute, liveSessionRoute, resumeSessionRoute } from '@/modules/workout/router/route'
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -20,6 +20,8 @@ const router = createRouter({
                 workoutListRoute,
                 workoutCreateRoute,
                 programCreateRoute,
+                programDetailRoute,
+                programEditRoute,
                 workoutSessionDetailRoute,
                 workoutSessionEditRoute,
                 liveSessionRoute,

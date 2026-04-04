@@ -32,6 +32,20 @@ export function useProgramService() {
       .single()
   }
 
+  async function getProgramById(programId: number) {
+    return await supabase
+      .from('program')
+      .select(`
+        *,
+        program_workouts:program_workout(
+          *,
+          workout(*, type:workout_exercise_type(*))
+        )
+      `)
+      .eq('id', programId)
+      .single()
+  }
+
   async function createProgram(program: Omit<Program, 'id' | 'created_at' | 'program_workouts'>) {
     return await supabase
       .from('program')
@@ -69,6 +83,20 @@ export function useProgramService() {
       .from('program_workout')
       .delete()
       .eq('id', id)
+  }
+
+  async function removeProgramWorkoutsByProgram(programId: number) {
+    return await supabase
+      .from('program_workout')
+      .delete()
+      .eq('program_id', programId)
+  }
+
+  async function addProgramWorkoutsBatch(data: Omit<ProgramWorkout, 'id' | 'created_at' | 'workout'>[]) {
+    return await supabase
+      .from('program_workout')
+      .insert(data)
+      .select(`*, workout(*, type:workout_exercise_type(*))`)
   }
 
   async function getWorkoutSessions(accountId: number) {
@@ -201,11 +229,14 @@ export function useProgramService() {
   return {
     getPrograms,
     getActiveProgram,
+    getProgramById,
     createProgram,
     updateProgram,
     deleteProgram,
     addProgramWorkout,
     removeProgramWorkout,
+    removeProgramWorkoutsByProgram,
+    addProgramWorkoutsBatch,
     getWorkoutSessions,
     getWorkouts,
     createWorkoutSession,

@@ -7,6 +7,8 @@ import ExerciseDetailView from '../views/ExerciseDetailView.vue'
 import WorkoutSessionDetailView from '../views/WorkoutSessionDetailView.vue'
 import WorkoutSessionEditView from '../views/WorkoutSessionEditView.vue'
 import ProgramCreateView from '../views/ProgramCreateView.vue'
+import ProgramDetailView from '../views/ProgramDetailView.vue'
+import ProgramEditView from '../views/ProgramEditView.vue'
 import LiveSessionView from '../views/LiveSessionView.vue'
 
 export const workoutRoute: RouteRecordRaw = {
@@ -36,6 +38,20 @@ export const programCreateRoute: RouteRecordRaw = {
     name: 'program-create',
     meta: { requiresAuth: true },
     component: ProgramCreateView,
+}
+
+export const programDetailRoute: RouteRecordRaw = {
+    path: '/workout/program/:id',
+    name: 'program-detail',
+    meta: { requiresAuth: true },
+    component: ProgramDetailView,
+}
+
+export const programEditRoute: RouteRecordRaw = {
+    path: '/workout/program/:id/edit',
+    name: 'program-edit',
+    meta: { requiresAuth: true },
+    component: ProgramEditView,
 }
 
 export const workoutSessionDetailRoute: RouteRecordRaw = {
