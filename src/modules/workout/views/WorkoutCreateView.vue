@@ -33,13 +33,28 @@ interface PendingExercise {
   reps: number
   weight: number
   rest: number
+  blockTempId: number | null
 }
 
+interface PendingBlock {
+  tempId: number
+  type: 'superset' | 'triset' | 'giant_set' | 'dropset'
+  title: string
+}
+
+const BLOCK_TYPES = [
+  { value: 'superset' as const, label: 'Superset' },
+  { value: 'triset' as const, label: 'Triset' },
+  { value: 'giant_set' as const, label: 'Giant Set' },
+  { value: 'dropset' as const, label: 'Dropset' },
+]
+
 let nextTempId = 1
+let nextBlockTempId = 1
 
 const router = useRouter()
 const authStore = useAuthStore()
-const { createWorkout, addExerciseToWorkout } = useWorkoutService()
+const { createWorkout, addExerciseToWorkout, createBlock } = useWorkoutService()
 const { getExerciseTypes, createExerciseType, createExercise } = useExerciseService()
 const {
   searchExercises,
@@ -56,7 +71,11 @@ const title = ref('')
 const subtitle = ref('')
 const selectedTypeId = ref<number | null>(null)
 const selectedExercises = ref<PendingExercise[]>([])
+const pendingBlocks = ref<PendingBlock[]>([])
 const saving = ref(false)
+
+// Block management
+const addingToBlockId = ref<number | null>(null)
 
 // Types
 const exerciseTypes = ref<ExerciseType[]>([])
@@ -106,12 +125,81 @@ const canSave = computed(() => {
   return title.value.trim() && selectedTypeId.value && selectedExercises.value.length > 0 && !saving.value
 })
 
-function openPicker() {
+// Display items: standalone exercises and blocks with their exercises
+type DisplayItem =
+  | { kind: 'exercise'; exercise: PendingExercise; index: number }
+  | { kind: 'block'; block: PendingBlock; exercises: { exercise: PendingExercise; index: number }[] }
+
+const displayItems = computed<DisplayItem[]>(() => {
+  const items: DisplayItem[] = []
+  const usedBlocks = new Set<number>()
+
+  // First, add standalone exercises and blocks that have exercises (in order)
+  for (let i = 0; i < selectedExercises.value.length; i++) {
+    const ex = selectedExercises.value[i]
+    if (ex.blockTempId) {
+      if (!usedBlocks.has(ex.blockTempId)) {
+        usedBlocks.add(ex.blockTempId)
+        const block = pendingBlocks.value.find(b => b.tempId === ex.blockTempId)
+        if (block) {
+          const blockExercises = selectedExercises.value
+            .map((e, idx) => ({ exercise: e, index: idx }))
+            .filter(e => e.exercise.blockTempId === ex.blockTempId)
+          items.push({ kind: 'block', block, exercises: blockExercises })
+        }
+      }
+    } else {
+      items.push({ kind: 'exercise', exercise: ex, index: i })
+    }
+  }
+
+  // Then, add empty blocks (no exercises yet)
+  for (const block of pendingBlocks.value) {
+    if (!usedBlocks.has(block.tempId)) {
+      items.push({ kind: 'block', block, exercises: [] })
+    }
+  }
+
+  return items
+})
+
+function getBlockTypeLabel(type: string): string {
+  return BLOCK_TYPES.find(t => t.value === type)?.label || type
+}
+
+function openPicker(blockTempId?: number) {
+  addingToBlockId.value = blockTempId ?? null
   pickerMode.value = 'search'
   searchQuery.value = ''
   searchResults.value = []
   customForm.value = { title: '', muscleGroup: '', equipment: '', bodyWeight: false }
   showPicker.value = true
+}
+
+function addBlock() {
+  const id = nextBlockTempId++
+  pendingBlocks.value.push({
+    tempId: id,
+    type: 'superset',
+    title: '',
+  })
+}
+
+function removeBlock(blockTempId: number) {
+  // Unlink exercises from block (make them standalone)
+  for (const ex of selectedExercises.value) {
+    if (ex.blockTempId === blockTempId) ex.blockTempId = null
+  }
+  pendingBlocks.value = pendingBlocks.value.filter(b => b.tempId !== blockTempId)
+}
+
+function changeBlockType(blockTempId: number, type: PendingBlock['type']) {
+  const block = pendingBlocks.value.find(b => b.tempId === blockTempId)
+  if (block) block.type = type
+}
+
+function removeExerciseFromBlock(exerciseIndex: number) {
+  selectedExercises.value[exerciseIndex].blockTempId = null
 }
 
 async function addNewType() {
@@ -153,9 +241,11 @@ async function importExercise(result: WgerSearchResult) {
     reps: 10,
     weight: 0,
     rest: 60,
+    blockTempId: addingToBlockId.value,
   })
 
   importing.value = null
+  addingToBlockId.value = null
   showPicker.value = false
 }
 
@@ -177,8 +267,10 @@ function addCustomExercise() {
     reps: 10,
     weight: 0,
     rest: 60,
+    blockTempId: addingToBlockId.value,
   })
 
+  addingToBlockId.value = null
   showPicker.value = false
 }
 
@@ -210,6 +302,21 @@ async function saveWorkout() {
     return
   }
 
+  // Create blocks in DB and map tempId → real id
+  const blockIdMap = new Map<number, number>()
+  for (const block of pendingBlocks.value) {
+    const blockExercises = selectedExercises.value.filter(e => e.blockTempId === block.tempId)
+    if (blockExercises.length === 0) continue
+
+    const { data: dbBlock } = await createBlock({
+      workout_id: workout.id,
+      type: block.type,
+      title: block.title || null,
+    })
+    if (dbBlock) blockIdMap.set(block.tempId, (dbBlock as any).id)
+  }
+
+  // Create exercises and link to workout
   for (let i = 0; i < selectedExercises.value.length; i++) {
     const pe = selectedExercises.value[i]
 
@@ -228,6 +335,8 @@ async function saveWorkout() {
 
     if (exError || !catalogExercise) continue
 
+    const realBlockId = pe.blockTempId ? blockIdMap.get(pe.blockTempId) ?? null : null
+
     await addExerciseToWorkout({
       workout_id: workout.id,
       exercise_id: catalogExercise.id,
@@ -236,6 +345,7 @@ async function saveWorkout() {
       weight: pe.weight,
       rest: pe.rest,
       order: i + 1,
+      ...(realBlockId ? { block_id: realBlockId } : {}),
     })
   }
 
@@ -314,68 +424,149 @@ async function saveWorkout() {
       </div>
     </div>
 
-    <!-- Selected Exercises -->
+    <!-- Selected Exercises & Blocks -->
     <div class="animate-fade-in-up stagger-3">
       <div class="flex items-center justify-between mb-3">
         <h2 class="text-sm font-semibold text-text-primary">Exercices ({{ selectedExercises.length }})</h2>
       </div>
 
-      <TransitionGroup name="list" tag="div" class="space-y-2">
-        <div v-for="(item, index) in selectedExercises" :key="item.tempId" class="card space-y-3">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-3 min-w-0">
-              <div v-if="item.imageUrl" class="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 bg-white/5">
-                <img :src="item.imageUrl" :alt="item.name" class="w-full h-full object-cover" />
-              </div>
-              <div v-else class="w-9 h-9 rounded-full bg-accent-500/15 flex items-center justify-center flex-shrink-0">
-                <span class="text-accent-400 text-sm font-bold">{{ index + 1 }}</span>
-              </div>
-              <div class="min-w-0">
-                <div class="flex items-center gap-1.5">
-                  <p class="text-sm font-medium text-text-primary truncate">{{ item.name }}</p>
-                  <span v-if="item.isCustom" class="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-white/[0.06] text-text-muted flex-shrink-0">Custom</span>
+      <div class="space-y-2">
+        <template v-for="item in displayItems" :key="item.kind === 'exercise' ? `ex-${item.exercise.tempId}` : `block-${item.block.tempId}`">
+          <!-- Standalone Exercise -->
+          <div v-if="item.kind === 'exercise'" class="card space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-3 min-w-0">
+                <div v-if="item.exercise.imageUrl" class="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 bg-white/5">
+                  <img :src="item.exercise.imageUrl" :alt="item.exercise.name" class="w-full h-full object-cover" />
                 </div>
-                <p v-if="item.muscleGroup" class="text-xs text-accent-400">{{ item.muscleGroup }}</p>
+                <div v-else class="w-9 h-9 rounded-full bg-accent-500/15 flex items-center justify-center flex-shrink-0">
+                  <span class="text-accent-400 text-sm font-bold">{{ item.index + 1 }}</span>
+                </div>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5">
+                    <p class="text-sm font-medium text-text-primary truncate">{{ item.exercise.name }}</p>
+                    <span v-if="item.exercise.isCustom" class="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-white/[0.06] text-text-muted flex-shrink-0">Custom</span>
+                  </div>
+                  <p v-if="item.exercise.muscleGroup" class="text-xs text-accent-400">{{ item.exercise.muscleGroup }}</p>
+                </div>
+              </div>
+              <div class="flex items-center space-x-1">
+                <button @click="moveExercise(item.index, -1)" :disabled="item.index === 0" class="p-1.5 rounded-lg hover:bg-white/5 transition-colors" :class="item.index === 0 ? 'opacity-30' : ''">
+                  <ChevronUpIcon class="h-4 w-4 text-text-muted" />
+                </button>
+                <button @click="moveExercise(item.index, 1)" :disabled="item.index === selectedExercises.length - 1" class="p-1.5 rounded-lg hover:bg-white/5 transition-colors" :class="item.index === selectedExercises.length - 1 ? 'opacity-30' : ''">
+                  <ChevronDownIcon class="h-4 w-4 text-text-muted" />
+                </button>
+                <button @click="removeExercise(item.index)" class="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors">
+                  <TrashIcon class="h-4 w-4 text-red-400" />
+                </button>
               </div>
             </div>
-            <div class="flex items-center space-x-1">
-              <button @click="moveExercise(index, -1)" :disabled="index === 0" class="p-1.5 rounded-lg hover:bg-white/5 transition-colors" :class="index === 0 ? 'opacity-30' : ''">
-                <ChevronUpIcon class="h-4 w-4 text-text-muted" />
-              </button>
-              <button @click="moveExercise(index, 1)" :disabled="index === selectedExercises.length - 1" class="p-1.5 rounded-lg hover:bg-white/5 transition-colors" :class="index === selectedExercises.length - 1 ? 'opacity-30' : ''">
-                <ChevronDownIcon class="h-4 w-4 text-text-muted" />
-              </button>
-              <button @click="removeExercise(index)" class="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors">
-                <TrashIcon class="h-4 w-4 text-red-400" />
-              </button>
+
+            <div class="grid grid-cols-4 gap-2">
+              <div>
+                <label class="text-[10px] text-text-muted block mb-1 text-center">Séries</label>
+                <input v-model.number="item.exercise.sets" type="number" min="1" class="input-field text-center text-sm !py-1.5" />
+              </div>
+              <div>
+                <label class="text-[10px] text-text-muted block mb-1 text-center">Reps</label>
+                <input v-model.number="item.exercise.reps" type="number" min="1" class="input-field text-center text-sm !py-1.5" />
+              </div>
+              <div>
+                <label class="text-[10px] text-text-muted block mb-1 text-center">Poids (kg)</label>
+                <input v-model.number="item.exercise.weight" type="number" min="0" step="0.5" class="input-field text-center text-sm !py-1.5" />
+              </div>
+              <div>
+                <label class="text-[10px] text-text-muted block mb-1 text-center">Repos (s)</label>
+                <input v-model.number="item.exercise.rest" type="number" min="0" step="5" class="input-field text-center text-sm !py-1.5" />
+              </div>
             </div>
           </div>
 
-          <div class="grid grid-cols-4 gap-2">
-            <div>
-              <label class="text-[10px] text-text-muted block mb-1 text-center">Séries</label>
-              <input v-model.number="item.sets" type="number" min="1" class="input-field text-center text-sm !py-1.5" />
+          <!-- Block (Superset / Triset / etc.) -->
+          <div v-else class="rounded-2xl border border-accent-500/20 bg-accent-500/[0.03] overflow-hidden">
+            <!-- Block header -->
+            <div class="flex items-center justify-between px-4 py-2.5 bg-accent-500/[0.06] border-b border-accent-500/10">
+              <div class="flex items-center space-x-2">
+                <select
+                  :value="item.block.type"
+                  @change="changeBlockType(item.block.tempId, ($event.target as HTMLSelectElement).value as PendingBlock['type'])"
+                  class="text-xs font-semibold text-accent-400 bg-transparent border-none outline-none cursor-pointer"
+                >
+                  <option v-for="bt in BLOCK_TYPES" :key="bt.value" :value="bt.value" class="bg-bg-primary text-text-primary">{{ bt.label }}</option>
+                </select>
+                <span class="text-[10px] text-text-muted">({{ item.exercises.length }} exercices)</span>
+              </div>
+              <button @click="removeBlock(item.block.tempId)" class="p-1 rounded-lg hover:bg-red-500/10 transition-colors">
+                <TrashIcon class="h-3.5 w-3.5 text-red-400" />
+              </button>
             </div>
-            <div>
-              <label class="text-[10px] text-text-muted block mb-1 text-center">Reps</label>
-              <input v-model.number="item.reps" type="number" min="1" class="input-field text-center text-sm !py-1.5" />
-            </div>
-            <div>
-              <label class="text-[10px] text-text-muted block mb-1 text-center">Poids (kg)</label>
-              <input v-model.number="item.weight" type="number" min="0" step="0.5" class="input-field text-center text-sm !py-1.5" />
-            </div>
-            <div>
-              <label class="text-[10px] text-text-muted block mb-1 text-center">Repos (s)</label>
-              <input v-model.number="item.rest" type="number" min="0" step="5" class="input-field text-center text-sm !py-1.5" />
+
+            <!-- Block exercises -->
+            <div class="p-3 space-y-2">
+              <div v-for="bex in item.exercises" :key="bex.exercise.tempId" class="card !bg-white/[0.03] space-y-3">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center space-x-3 min-w-0">
+                    <div v-if="bex.exercise.imageUrl" class="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 bg-white/5">
+                      <img :src="bex.exercise.imageUrl" :alt="bex.exercise.name" class="w-full h-full object-cover" />
+                    </div>
+                    <div v-else class="w-8 h-8 rounded-lg bg-accent-500/15 flex items-center justify-center flex-shrink-0">
+                      <span class="text-accent-400 text-xs font-bold">{{ bex.exercise.name[0] }}</span>
+                    </div>
+                    <div class="min-w-0">
+                      <p class="text-sm font-medium text-text-primary truncate">{{ bex.exercise.name }}</p>
+                      <p v-if="bex.exercise.muscleGroup" class="text-[10px] text-accent-400">{{ bex.exercise.muscleGroup }}</p>
+                    </div>
+                  </div>
+                  <button @click="removeExerciseFromBlock(bex.index)" class="p-1.5 rounded-lg hover:bg-white/5 transition-colors">
+                    <XMarkIcon class="h-3.5 w-3.5 text-text-muted" />
+                  </button>
+                </div>
+
+                <div class="grid grid-cols-4 gap-2">
+                  <div>
+                    <label class="text-[10px] text-text-muted block mb-1 text-center">Séries</label>
+                    <input v-model.number="bex.exercise.sets" type="number" min="1" class="input-field text-center text-sm !py-1.5" />
+                  </div>
+                  <div>
+                    <label class="text-[10px] text-text-muted block mb-1 text-center">Reps</label>
+                    <input v-model.number="bex.exercise.reps" type="number" min="1" class="input-field text-center text-sm !py-1.5" />
+                  </div>
+                  <div>
+                    <label class="text-[10px] text-text-muted block mb-1 text-center">Poids (kg)</label>
+                    <input v-model.number="bex.exercise.weight" type="number" min="0" step="0.5" class="input-field text-center text-sm !py-1.5" />
+                  </div>
+                  <div>
+                    <label class="text-[10px] text-text-muted block mb-1 text-center">Repos (s)</label>
+                    <input v-model.number="bex.exercise.rest" type="number" min="0" step="5" class="input-field text-center text-sm !py-1.5" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Add exercise to block -->
+              <button
+                @click="openPicker(item.block.tempId)"
+                class="w-full flex items-center justify-center space-x-1.5 py-2 rounded-xl border border-dashed border-accent-500/20 text-accent-400 hover:bg-accent-500/5 transition-all duration-200 press-sm"
+              >
+                <PlusIcon class="h-3.5 w-3.5" />
+                <span class="text-xs font-medium">Ajouter un exercice</span>
+              </button>
             </div>
           </div>
-        </div>
-      </TransitionGroup>
+        </template>
+      </div>
 
-      <button @click="openPicker" class="mt-3 w-full flex items-center justify-center space-x-2 py-3 rounded-xl border border-dashed border-white/[0.12] text-accent-400 hover:bg-white/5 transition-all duration-200 press">
-        <PlusIcon class="h-4 w-4" />
-        <span class="text-sm font-medium">Ajouter un exercice</span>
-      </button>
+      <!-- Action buttons -->
+      <div class="flex space-x-2 mt-3">
+        <button @click="openPicker()" class="flex-1 flex items-center justify-center space-x-2 py-3 rounded-xl border border-dashed border-white/[0.12] text-accent-400 hover:bg-white/5 transition-all duration-200 press">
+          <PlusIcon class="h-4 w-4" />
+          <span class="text-sm font-medium">Exercice</span>
+        </button>
+        <button @click="addBlock" class="flex-1 flex items-center justify-center space-x-2 py-3 rounded-xl border border-dashed border-accent-500/20 text-accent-400 hover:bg-accent-500/5 transition-all duration-200 press">
+          <PlusIcon class="h-4 w-4" />
+          <span class="text-sm font-medium">Superset</span>
+        </button>
+      </div>
     </div>
 
     <!-- Exercise Picker Modal -->

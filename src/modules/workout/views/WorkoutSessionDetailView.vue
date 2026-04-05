@@ -55,6 +55,38 @@ const exercises = computed(() => {
     }))
 })
 
+// Group exercises: standalone + blocks
+type DetailItem =
+  | { kind: 'exercise'; we: (typeof exercises.value)[0] ; index: number }
+  | { kind: 'block'; block: { id: number; type: string; title: string | null }; exercises: { we: (typeof exercises.value)[0]; index: number }[] }
+
+const detailItems = computed<DetailItem[]>(() => {
+  const items: DetailItem[] = []
+  const blocks = workout.value?.blocks || []
+  const usedBlockIds = new Set<number>()
+
+  for (let i = 0; i < exercises.value.length; i++) {
+    const we = exercises.value[i]
+    if (we.block_id) {
+      if (!usedBlockIds.has(we.block_id)) {
+        usedBlockIds.add(we.block_id)
+        const block = blocks.find((b: any) => b.id === we.block_id)
+        const blockExercises = exercises.value
+          .map((e, idx) => ({ we: e, index: idx }))
+          .filter(e => e.we.block_id === we.block_id)
+        items.push({
+          kind: 'block',
+          block: block || { id: we.block_id, type: 'superset', title: null },
+          exercises: blockExercises,
+        })
+      }
+    } else {
+      items.push({ kind: 'exercise', we, index: i })
+    }
+  }
+  return items
+})
+
 const totalSets = computed(() => {
   return exercises.value.reduce((sum, we) => sum + (we.set || 0), 0)
 })
@@ -181,90 +213,102 @@ async function handleDelete() {
         </h2>
 
         <div v-if="exercises.length" class="space-y-2">
-          <div
-            v-for="(we, index) in exercises"
-            :key="we.id"
-            class="card animate-fade-in-up"
-            :class="`stagger-${Math.min(index + 3, 8)}`"
-          >
-            <div class="flex items-start space-x-3">
-              <div
-                v-if="we.ex?.image_url"
-                class="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-white/5"
-              >
-                <img :src="we.ex.image_url" :alt="we.ex.title" class="w-full h-full object-cover" />
-              </div>
-              <div v-else class="w-12 h-12 rounded-xl bg-accent-500/15 flex items-center justify-center flex-shrink-0">
-                <span class="text-accent-400 text-lg font-bold">{{ index + 1 }}</span>
+          <template v-for="item in detailItems" :key="item.kind === 'exercise' ? `ex-${item.we.id}` : `block-${item.block.id}`">
+            <!-- Standalone exercise -->
+            <div v-if="item.kind === 'exercise'" class="card animate-fade-in-up">
+              <div class="flex items-start space-x-3">
+                <div
+                  v-if="item.we.ex?.image_url"
+                  class="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-white/5"
+                >
+                  <img :src="item.we.ex.image_url" :alt="item.we.ex.title" class="w-full h-full object-cover" />
+                </div>
+                <div v-else class="w-12 h-12 rounded-xl bg-accent-500/15 flex items-center justify-center flex-shrink-0">
+                  <span class="text-accent-400 text-lg font-bold">{{ item.index + 1 }}</span>
+                </div>
+
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-semibold text-text-primary truncate">{{ item.we.ex?.title || 'Exercice' }}</p>
+                  <div class="flex items-center flex-wrap gap-1.5 mt-1">
+                    <span v-if="item.we.ex?.muscle_group" class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-accent-500/15 text-accent-400">{{ item.we.ex.muscle_group }}</span>
+                    <span v-if="item.we.ex?.equipment" class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/[0.06] text-text-muted">{{ item.we.ex.equipment }}</span>
+                    <span v-if="item.we.ex?.body_weight" class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">Poids du corps</span>
+                  </div>
+                </div>
               </div>
 
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-semibold text-text-primary truncate">{{ we.ex?.title || 'Exercice' }}</p>
-                <div class="flex items-center flex-wrap gap-1.5 mt-1">
-                  <span
-                    v-if="we.ex?.muscle_group"
-                    class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-accent-500/15 text-accent-400"
-                  >
-                    {{ we.ex.muscle_group }}
-                  </span>
-                  <span
-                    v-if="we.ex?.equipment"
-                    class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/[0.06] text-text-muted"
-                  >
-                    {{ we.ex.equipment }}
-                  </span>
-                  <span
-                    v-if="we.ex?.body_weight"
-                    class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400"
-                  >
-                    Poids du corps
-                  </span>
+              <div class="grid grid-cols-4 gap-2 mt-3 pt-3 border-t border-white/[0.06]">
+                <div class="flex flex-col items-center">
+                  <div class="flex items-center space-x-1 mb-0.5"><ArrowPathRoundedSquareIcon class="h-3 w-3 text-accent-400" /><span class="text-[10px] text-text-muted">Séries</span></div>
+                  <span class="text-sm font-bold text-text-primary">{{ item.we.set || '—' }}</span>
+                </div>
+                <div class="flex flex-col items-center">
+                  <div class="flex items-center space-x-1 mb-0.5"><BoltIcon class="h-3 w-3 text-accent-400" /><span class="text-[10px] text-text-muted">Reps</span></div>
+                  <span class="text-sm font-bold text-text-primary">{{ item.we.repetitions || '—' }}</span>
+                </div>
+                <div class="flex flex-col items-center">
+                  <div class="flex items-center space-x-1 mb-0.5"><CubeIcon class="h-3 w-3 text-accent-400" /><span class="text-[10px] text-text-muted">Poids</span></div>
+                  <span class="text-sm font-bold text-text-primary">{{ item.we.weight ? `${item.we.weight} kg` : '—' }}</span>
+                </div>
+                <div class="flex flex-col items-center">
+                  <div class="flex items-center space-x-1 mb-0.5"><ClockIcon class="h-3 w-3 text-accent-400" /><span class="text-[10px] text-text-muted">Repos</span></div>
+                  <span class="text-sm font-bold text-text-primary">{{ item.we.rest ? `${item.we.rest}s` : '—' }}</span>
+                </div>
+              </div>
+
+              <p v-if="item.we.ex?.secondary_muscles" class="text-[10px] text-text-muted mt-2 pt-2 border-t border-white/[0.04]">
+                Muscles secondaires : {{ item.we.ex.secondary_muscles }}
+              </p>
+            </div>
+
+            <!-- Block (Superset / Triset) -->
+            <div v-else class="rounded-2xl border border-accent-500/20 bg-accent-500/[0.03] overflow-hidden animate-fade-in-up">
+              <div class="px-4 py-2 bg-accent-500/[0.06] border-b border-accent-500/10">
+                <div class="flex items-center space-x-2">
+                  <span class="text-xs font-semibold text-accent-400 capitalize">{{ item.block.type === 'giant_set' ? 'Giant Set' : item.block.type }}</span>
+                  <span v-if="item.block.title" class="text-[10px] text-text-muted">— {{ item.block.title }}</span>
+                  <span class="text-[10px] text-text-muted">({{ item.exercises.length }} exercices)</span>
+                </div>
+              </div>
+              <div class="p-3 space-y-2">
+                <div v-for="bex in item.exercises" :key="bex.we.id" class="card !bg-white/[0.03]">
+                  <div class="flex items-start space-x-3">
+                    <div v-if="bex.we.ex?.image_url" class="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-white/5">
+                      <img :src="bex.we.ex.image_url" :alt="bex.we.ex.title" class="w-full h-full object-cover" />
+                    </div>
+                    <div v-else class="w-10 h-10 rounded-lg bg-accent-500/15 flex items-center justify-center flex-shrink-0">
+                      <span class="text-accent-400 text-sm font-bold">{{ bex.we.ex?.title?.[0] || '?' }}</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-semibold text-text-primary truncate">{{ bex.we.ex?.title || 'Exercice' }}</p>
+                      <div class="flex items-center flex-wrap gap-1.5 mt-1">
+                        <span v-if="bex.we.ex?.muscle_group" class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-accent-500/15 text-accent-400">{{ bex.we.ex.muscle_group }}</span>
+                        <span v-if="bex.we.ex?.equipment" class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/[0.06] text-text-muted">{{ bex.we.ex.equipment }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-4 gap-2 mt-2 pt-2 border-t border-white/[0.06]">
+                    <div class="flex flex-col items-center">
+                      <span class="text-[10px] text-text-muted">Séries</span>
+                      <span class="text-sm font-bold text-text-primary">{{ bex.we.set || '—' }}</span>
+                    </div>
+                    <div class="flex flex-col items-center">
+                      <span class="text-[10px] text-text-muted">Reps</span>
+                      <span class="text-sm font-bold text-text-primary">{{ bex.we.repetitions || '—' }}</span>
+                    </div>
+                    <div class="flex flex-col items-center">
+                      <span class="text-[10px] text-text-muted">Poids</span>
+                      <span class="text-sm font-bold text-text-primary">{{ bex.we.weight ? `${bex.we.weight} kg` : '—' }}</span>
+                    </div>
+                    <div class="flex flex-col items-center">
+                      <span class="text-[10px] text-text-muted">Repos</span>
+                      <span class="text-sm font-bold text-text-primary">{{ bex.we.rest ? `${bex.we.rest}s` : '—' }}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-
-            <div class="grid grid-cols-4 gap-2 mt-3 pt-3 border-t border-white/[0.06]">
-              <div class="flex flex-col items-center">
-                <div class="flex items-center space-x-1 mb-0.5">
-                  <ArrowPathRoundedSquareIcon class="h-3 w-3 text-accent-400" />
-                  <span class="text-[10px] text-text-muted">Séries</span>
-                </div>
-                <span class="text-sm font-bold text-text-primary">{{ we.set || '—' }}</span>
-              </div>
-              <div class="flex flex-col items-center">
-                <div class="flex items-center space-x-1 mb-0.5">
-                  <BoltIcon class="h-3 w-3 text-accent-400" />
-                  <span class="text-[10px] text-text-muted">Reps</span>
-                </div>
-                <span class="text-sm font-bold text-text-primary">{{ we.repetitions || '—' }}</span>
-              </div>
-              <div class="flex flex-col items-center">
-                <div class="flex items-center space-x-1 mb-0.5">
-                  <CubeIcon class="h-3 w-3 text-accent-400" />
-                  <span class="text-[10px] text-text-muted">Poids</span>
-                </div>
-                <span class="text-sm font-bold text-text-primary">
-                  {{ we.weight ? `${we.weight} kg` : '—' }}
-                </span>
-              </div>
-              <div class="flex flex-col items-center">
-                <div class="flex items-center space-x-1 mb-0.5">
-                  <ClockIcon class="h-3 w-3 text-accent-400" />
-                  <span class="text-[10px] text-text-muted">Repos</span>
-                </div>
-                <span class="text-sm font-bold text-text-primary">
-                  {{ we.rest ? `${we.rest}s` : '—' }}
-                </span>
-              </div>
-            </div>
-
-            <p
-              v-if="we.ex?.secondary_muscles"
-              class="text-[10px] text-text-muted mt-2 pt-2 border-t border-white/[0.04]"
-            >
-              Muscles secondaires : {{ we.ex.secondary_muscles }}
-            </p>
-          </div>
+          </template>
         </div>
 
         <div v-else class="card text-center py-6">

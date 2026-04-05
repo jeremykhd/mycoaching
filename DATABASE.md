@@ -166,6 +166,20 @@ Exercise catalog. Each exercise is a unique definition (name, muscles, image). I
 
 ---
 
+### `workout_block`
+Groups of exercises performed together (supersets, trisets, giant sets, dropsets).
+
+| Column | Type | Nullable | Notes |
+|--------|------|----------|-------|
+| `id` | bigint | NO | PK |
+| `workout_id` | bigint | NO | FK → `workout` (ON DELETE CASCADE) |
+| `type` | varchar | NO | 'superset', 'triset', 'giant_set', 'dropset' (default 'superset') |
+| `title` | varchar | YES | optional label |
+| `order` | smallint | YES | block position in workout |
+| `created_at` | timestamptz | NO | |
+
+---
+
 ### `workout_exercise`
 Pivot table linking exercises to workouts with workout-specific config (sets, reps, weight, rest).
 
@@ -179,6 +193,7 @@ Pivot table linking exercises to workouts with workout-specific config (sets, re
 | `weight` | real | YES | kg (default 0) |
 | `rest` | smallint | YES | rest in seconds (default 60) |
 | `order` | smallint | YES | exercise order in workout |
+| `block_id` | bigint | YES | FK → `workout_block` (ON DELETE SET NULL). NULL = standalone |
 | `created_at` | timestamptz | NO | |
 
 ---
@@ -293,7 +308,9 @@ Each set performed — the actual performance data for progression tracking.
 | `account_group` | `group_id` | `group` | many-to-many pivot |
 | `group` | `create_by` | `account` | many-to-1 |
 | `workout` | `account_id` | `account` | many-to-1 |
+| `workout_block` | `workout_id` | `workout` | many-to-1 (CASCADE) |
 | `workout_exercise` | `workout_id` | `workout` | many-to-1 |
+| `workout_exercise` | `block_id` | `workout_block` | many-to-1 (SET NULL) |
 | `workout_exercise` | `type` | `workout_exercise_type` | many-to-1 |
 | `workout_exercise` | `account_id` | `account` | many-to-1 (custom exercises) |
 | `workout_group` | `workout_id` | `workout` | many-to-many pivot |

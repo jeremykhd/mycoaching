@@ -29,7 +29,19 @@ interface LiveExercise {
   sessionExerciseId?: number
   exercise: WorkoutExercise
   sets: LiveSet[]
+  blockId?: number | null
 }
+
+interface LiveBlock {
+  id: number
+  type: string
+  title: string | null
+  exercises: LiveExercise[]
+}
+
+type LiveDisplayItem =
+  | { kind: 'exercise'; exercise: LiveExercise; exIdx: number }
+  | { kind: 'block'; block: LiveBlock }
 
 const route = useRoute()
 const router = useRouter()
@@ -88,6 +100,35 @@ const totalVolume = computed(() => {
 const volumeFormatted = computed(() => {
   if (totalVolume.value >= 1000) return `${(totalVolume.value / 1000).toFixed(1)}T`
   return `${totalVolume.value}kg`
+})
+
+const liveDisplayItems = computed<LiveDisplayItem[]>(() => {
+  const items: LiveDisplayItem[] = []
+  const usedBlockIds = new Set<number>()
+  const blocks = workout.value?.blocks || []
+
+  for (let i = 0; i < exercises.value.length; i++) {
+    const ex = exercises.value[i]
+    if (ex.blockId) {
+      if (!usedBlockIds.has(ex.blockId)) {
+        usedBlockIds.add(ex.blockId)
+        const block = blocks.find((b: any) => b.id === ex.blockId)
+        const blockExercises = exercises.value.filter(e => e.blockId === ex.blockId)
+        items.push({
+          kind: 'block',
+          block: {
+            id: ex.blockId,
+            type: block?.type || 'superset',
+            title: block?.title || null,
+            exercises: blockExercises,
+          },
+        })
+      }
+    } else {
+      items.push({ kind: 'exercise', exercise: ex, exIdx: i })
+    }
+  }
+  return items
 })
 
 const progress = computed(() => {
@@ -153,6 +194,7 @@ async function initNewSession() {
       sessionExerciseId: se?.id,
       exercise: we,
       sets,
+      blockId: we.block_id,
     })
   }
 
@@ -199,6 +241,7 @@ async function resumeSession() {
       sessionExerciseId: se?.id,
       exercise: we,
       sets,
+      blockId: we.block_id,
     })
   }
 
@@ -352,109 +395,105 @@ async function finishSession() {
         </div>
       </div>
 
-      <!-- Exercises -->
-      <div
-        v-for="(ex, exIdx) in exercises"
-        :key="ex.workoutExerciseId"
-        class="card animate-fade-in-up"
-        :class="`stagger-${Math.min(exIdx + 2, 6)}`"
-      >
-        <!-- Exercise header -->
-        <div class="flex items-center space-x-3 mb-3">
-          <div
-            v-if="ex.exercise.exercise?.image_url"
-            class="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0"
-          >
-            <img :src="ex.exercise.exercise.image_url" class="w-full h-full object-cover" alt="" />
+      <!-- Exercises & Blocks -->
+      <template v-for="(item, itemIdx) in liveDisplayItems" :key="item.kind === 'exercise' ? `ex-${item.exercise.workoutExerciseId}` : `block-${item.block.id}`">
+        <!-- Standalone Exercise -->
+        <div
+          v-if="item.kind === 'exercise'"
+          class="card animate-fade-in-up"
+          :class="`stagger-${Math.min(itemIdx + 2, 6)}`"
+        >
+          <div class="flex items-center space-x-3 mb-3">
+            <div v-if="item.exercise.exercise.exercise?.image_url" class="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0">
+              <img :src="item.exercise.exercise.exercise.image_url" class="w-full h-full object-cover" alt="" />
+            </div>
+            <div v-else class="w-10 h-10 rounded-lg bg-accent-500/15 flex items-center justify-center flex-shrink-0">
+              <FireIcon class="h-5 w-5 text-accent-400" />
+            </div>
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-text-primary truncate">{{ item.exercise.exercise.exercise?.title || 'Exercice' }}</p>
+              <div class="flex items-center gap-1.5 mt-0.5">
+                <span v-if="item.exercise.exercise.exercise?.muscle_group" class="text-[10px] text-accent-400">{{ item.exercise.exercise.exercise.muscle_group }}</span>
+                <span v-if="item.exercise.exercise.exercise?.equipment" class="text-[10px] text-text-muted">{{ item.exercise.exercise.exercise.equipment }}</span>
+              </div>
+            </div>
           </div>
-          <div v-else class="w-10 h-10 rounded-lg bg-accent-500/15 flex items-center justify-center flex-shrink-0">
-            <FireIcon class="h-5 w-5 text-accent-400" />
+
+          <div class="grid grid-cols-[2rem_1fr_1fr_2.5rem] gap-2 mb-1.5 px-1">
+            <span class="text-[10px] text-text-muted text-center">Set</span>
+            <span class="text-[10px] text-text-muted text-center">{{ item.exercise.sets[0]?.bodyWeight ? 'Poids corps' : 'Poids (kg)' }}</span>
+            <span class="text-[10px] text-text-muted text-center">Reps</span>
+            <span />
           </div>
-          <div class="min-w-0">
-            <p class="text-sm font-semibold text-text-primary truncate">
-              {{ ex.exercise.exercise?.title || 'Exercice' }}
-            </p>
-            <div class="flex items-center gap-1.5 mt-0.5">
-              <span v-if="ex.exercise.exercise?.muscle_group" class="text-[10px] text-accent-400">
-                {{ ex.exercise.exercise.muscle_group }}
-              </span>
-              <span v-if="ex.exercise.exercise?.equipment" class="text-[10px] text-text-muted">
-                {{ ex.exercise.exercise.equipment }}
-              </span>
+          <div class="space-y-1.5">
+            <div v-for="(set, setIdx) in item.exercise.sets" :key="setIdx" class="grid grid-cols-[2rem_1fr_1fr_2.5rem] gap-2 items-center">
+              <span class="text-xs font-semibold text-text-secondary text-center">{{ set.setNumber }}</span>
+              <input v-if="!set.bodyWeight" type="number" :value="set.weight" @input="updateSetWeight(item.exIdx, setIdx, Number(($event.target as HTMLInputElement).value))" class="input-field text-sm text-center !py-1.5" :class="set.completed ? 'opacity-50' : ''" />
+              <span v-else class="text-xs text-text-muted text-center">BW</span>
+              <input type="number" :value="set.repetitions" @input="updateSetReps(item.exIdx, setIdx, Number(($event.target as HTMLInputElement).value))" class="input-field text-sm text-center !py-1.5" :class="set.completed ? 'opacity-50' : ''" />
+              <button @click="toggleSet(item.exIdx, setIdx)" class="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 press-sm" :class="set.completed ? 'bg-accent-500 text-white' : 'bg-white/[0.06] text-text-muted hover:bg-white/10'">
+                <CheckIcon class="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+          <div class="flex items-center justify-center space-x-3 mt-3 pt-2 border-t border-white/[0.06]">
+            <button @click="removeSet(item.exIdx)" :disabled="item.exercise.sets.length <= 1" class="p-1.5 rounded-lg hover:bg-white/5 transition-colors disabled:opacity-30"><MinusIcon class="h-4 w-4 text-text-muted" /></button>
+            <span class="text-xs text-text-muted">{{ item.exercise.sets.length }} série{{ item.exercise.sets.length > 1 ? 's' : '' }}</span>
+            <button @click="addSet(item.exIdx)" class="p-1.5 rounded-lg hover:bg-white/5 transition-colors"><PlusIcon class="h-4 w-4 text-accent-400" /></button>
+          </div>
+        </div>
+
+        <!-- Block (Superset / Triset) -->
+        <div
+          v-else
+          class="rounded-2xl border border-accent-500/20 bg-accent-500/[0.03] overflow-hidden animate-fade-in-up"
+          :class="`stagger-${Math.min(itemIdx + 2, 6)}`"
+        >
+          <div class="px-4 py-2 bg-accent-500/[0.06] border-b border-accent-500/10">
+            <span class="text-xs font-semibold text-accent-400 capitalize">{{ item.block.type === 'giant_set' ? 'Giant Set' : item.block.type }}</span>
+            <span v-if="item.block.title" class="text-[10px] text-text-muted ml-2">— {{ item.block.title }}</span>
+          </div>
+          <div class="p-3 space-y-3">
+            <div v-for="bex in item.block.exercises" :key="bex.workoutExerciseId" class="card !bg-white/[0.03]">
+              <div class="flex items-center space-x-3 mb-3">
+                <div v-if="bex.exercise.exercise?.image_url" class="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0">
+                  <img :src="bex.exercise.exercise.image_url" class="w-full h-full object-cover" alt="" />
+                </div>
+                <div v-else class="w-9 h-9 rounded-lg bg-accent-500/15 flex items-center justify-center flex-shrink-0">
+                  <FireIcon class="h-4 w-4 text-accent-400" />
+                </div>
+                <div class="min-w-0">
+                  <p class="text-xs font-semibold text-text-primary truncate">{{ bex.exercise.exercise?.title || 'Exercice' }}</p>
+                  <span v-if="bex.exercise.exercise?.muscle_group" class="text-[10px] text-accent-400">{{ bex.exercise.exercise.muscle_group }}</span>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-[2rem_1fr_1fr_2.5rem] gap-2 mb-1 px-1">
+                <span class="text-[10px] text-text-muted text-center">Set</span>
+                <span class="text-[10px] text-text-muted text-center">{{ bex.sets[0]?.bodyWeight ? 'BW' : 'kg' }}</span>
+                <span class="text-[10px] text-text-muted text-center">Reps</span>
+                <span />
+              </div>
+              <div class="space-y-1.5">
+                <div v-for="(set, setIdx) in bex.sets" :key="setIdx" class="grid grid-cols-[2rem_1fr_1fr_2.5rem] gap-2 items-center">
+                  <span class="text-xs font-semibold text-text-secondary text-center">{{ set.setNumber }}</span>
+                  <input v-if="!set.bodyWeight" type="number" :value="set.weight" @input="updateSetWeight(exercises.indexOf(bex), setIdx, Number(($event.target as HTMLInputElement).value))" class="input-field text-sm text-center !py-1.5" :class="set.completed ? 'opacity-50' : ''" />
+                  <span v-else class="text-xs text-text-muted text-center">BW</span>
+                  <input type="number" :value="set.repetitions" @input="updateSetReps(exercises.indexOf(bex), setIdx, Number(($event.target as HTMLInputElement).value))" class="input-field text-sm text-center !py-1.5" :class="set.completed ? 'opacity-50' : ''" />
+                  <button @click="toggleSet(exercises.indexOf(bex), setIdx)" class="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 press-sm" :class="set.completed ? 'bg-accent-500 text-white' : 'bg-white/[0.06] text-text-muted hover:bg-white/10'">
+                    <CheckIcon class="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+              <div class="flex items-center justify-center space-x-3 mt-2 pt-2 border-t border-white/[0.06]">
+                <button @click="removeSet(exercises.indexOf(bex))" :disabled="bex.sets.length <= 1" class="p-1.5 rounded-lg hover:bg-white/5 transition-colors disabled:opacity-30"><MinusIcon class="h-4 w-4 text-text-muted" /></button>
+                <span class="text-[10px] text-text-muted">{{ bex.sets.length }} série{{ bex.sets.length > 1 ? 's' : '' }}</span>
+                <button @click="addSet(exercises.indexOf(bex))" class="p-1.5 rounded-lg hover:bg-white/5 transition-colors"><PlusIcon class="h-4 w-4 text-accent-400" /></button>
+              </div>
             </div>
           </div>
         </div>
-
-        <!-- Sets table header -->
-        <div class="grid grid-cols-[2rem_1fr_1fr_2.5rem] gap-2 mb-1.5 px-1">
-          <span class="text-[10px] text-text-muted text-center">Set</span>
-          <span class="text-[10px] text-text-muted text-center">
-            {{ ex.sets[0]?.bodyWeight ? 'Poids corps' : 'Poids (kg)' }}
-          </span>
-          <span class="text-[10px] text-text-muted text-center">Reps</span>
-          <span />
-        </div>
-
-        <!-- Sets rows -->
-        <div class="space-y-1.5">
-          <div
-            v-for="(set, setIdx) in ex.sets"
-            :key="setIdx"
-            class="grid grid-cols-[2rem_1fr_1fr_2.5rem] gap-2 items-center"
-          >
-            <span class="text-xs font-semibold text-text-secondary text-center">{{ set.setNumber }}</span>
-
-            <!-- Weight -->
-            <input
-              v-if="!set.bodyWeight"
-              type="number"
-              :value="set.weight"
-              @input="updateSetWeight(exIdx, setIdx, Number(($event.target as HTMLInputElement).value))"
-              class="input-field text-sm text-center !py-1.5"
-              :class="set.completed ? 'opacity-50' : ''"
-            />
-            <span v-else class="text-xs text-text-muted text-center">BW</span>
-
-            <!-- Reps -->
-            <input
-              type="number"
-              :value="set.repetitions"
-              @input="updateSetReps(exIdx, setIdx, Number(($event.target as HTMLInputElement).value))"
-              class="input-field text-sm text-center !py-1.5"
-              :class="set.completed ? 'opacity-50' : ''"
-            />
-
-            <!-- Check button -->
-            <button
-              @click="toggleSet(exIdx, setIdx)"
-              class="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 press-sm"
-              :class="set.completed
-                ? 'bg-accent-500 text-white'
-                : 'bg-white/[0.06] text-text-muted hover:bg-white/10'"
-            >
-              <CheckIcon class="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-
-        <!-- Add/Remove set -->
-        <div class="flex items-center justify-center space-x-3 mt-3 pt-2 border-t border-white/[0.06]">
-          <button
-            @click="removeSet(exIdx)"
-            :disabled="ex.sets.length <= 1"
-            class="p-1.5 rounded-lg hover:bg-white/5 transition-colors disabled:opacity-30"
-          >
-            <MinusIcon class="h-4 w-4 text-text-muted" />
-          </button>
-          <span class="text-xs text-text-muted">{{ ex.sets.length }} série{{ ex.sets.length > 1 ? 's' : '' }}</span>
-          <button
-            @click="addSet(exIdx)"
-            class="p-1.5 rounded-lg hover:bg-white/5 transition-colors"
-          >
-            <PlusIcon class="h-4 w-4 text-accent-400" />
-          </button>
-        </div>
-      </div>
+      </template>
 
       <!-- Notes -->
       <div class="card animate-fade-in-up">
