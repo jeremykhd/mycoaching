@@ -3,30 +3,17 @@ import { useRouter } from 'vue-router';
 import AccountFormComponent from '../components/AccountFormComponent.vue';
 import type { Account } from '../models/Account';
 import { useAccountStore } from '../store/useAccountStore';
-import type { User } from '@supabase/supabase-js';
+import { useAuthStore } from '@/modules/auth/store/useAuthStore';
 
-const props = defineProps<{
-  user: User
-}>()
 const router = useRouter();
-// const formData = ref<Partial<Account>>({
-//   firstname: '',
-//   lastname: '',
-//   email: '',
-//   password: '',
-//   birthday: '',
-//   height: 0,
-//   gender: null
-// });
 const accountStore = useAccountStore();
+const authStore = useAuthStore();
 
 const handleSubmit = async (account: Partial<Account>) => {
-  // TODO: Implémenter la création du compte
+  if (!authStore.user) return
 
-  console.log('... log avant de créer le compte')
-  await accountStore.createAccount(account, props.user.email ?? '', props.user.id)
-
-  console.log('Account to create:', account);
+  await accountStore.createAccount(account, authStore.user.email ?? '', authStore.user.id)
+  await authStore.fetchAccount()
   router.push({ name: 'dashboard' });
 };
 
