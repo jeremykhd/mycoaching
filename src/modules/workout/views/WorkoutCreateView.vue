@@ -311,7 +311,7 @@ async function saveWorkout() {
     const { data: dbBlock } = await createBlock({
       workout_id: workout.id,
       type: block.type,
-      title: block.title || null,
+      title: block.title || undefined,
     })
     if (dbBlock) blockIdMap.set(block.tempId, (dbBlock as any).id)
   }
