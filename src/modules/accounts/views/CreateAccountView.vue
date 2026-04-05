@@ -23,45 +23,36 @@ const handleCancel = () => {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center relative">
-    <!-- Background Image with Overlay -->
-    <div class="absolute inset-0 z-0">
-      <img
-        src="@/assets/garrett-butler-UrJ-fn2iRUM-unsplash.jpg"
-        alt="Background"
-        class="w-full h-full object-cover object-bottom"
-      />
-      <div class="absolute inset-0 bg-night-900/80"></div>
-    </div>
+  <div class="min-h-screen flex items-center justify-center bg-bg-primary relative overflow-hidden">
+    <!-- Ambient glow -->
+    <div class="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-accent-500/10 rounded-full blur-3xl"></div>
 
     <!-- Content -->
-    <div class="max-w-md w-full mx-4 relative z-10">
+    <div class="max-w-md w-full mx-4 relative z-10 animate-fade-in">
       <!-- Card -->
-      <div class="bg-night-800 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden">
+      <div class="card">
         <!-- Header -->
-        <div class="px-8 pt-8 pb-6 text-center">
-          <div class="flex justify-center mb-6">
+        <div class="text-center mb-8">
+          <div class="flex justify-center mb-5">
             <img src="@/assets/logo.svg" alt="Logo" class="h-16 w-16 animate-pulse" />
           </div>
-          <h2 class="text-3xl font-extrabold bg-gradient-to-r from-night-500 to-night-700 bg-clip-text text-transparent">
+          <h2 class="text-3xl font-extrabold text-text-primary">
             Créer un compte
           </h2>
-          <p class="mt-2 text-sm text-white">
+          <p class="mt-2 text-sm text-text-muted">
             Remplissez le formulaire ci-dessous pour créer votre compte
           </p>
         </div>
 
         <!-- Formulaire -->
-        <div class="px-8 pb-8">
-          <AccountFormComponent
-            @submit="handleSubmit"
-            @cancel="handleCancel"
-          />
-        </div>
+        <AccountFormComponent
+          @submit="handleSubmit"
+          @cancel="handleCancel"
+        />
 
         <!-- Footer -->
-        <div class="px-8 py-4 bg-white/20 border-t border-white/20">
-          <p class="text-center text-sm text-white">
+        <div class="mt-6 pt-5 border-t border-white/[0.08]">
+          <p class="text-center text-sm text-text-muted">
             En créant un compte, vous acceptez nos conditions d'utilisation
           </p>
         </div>

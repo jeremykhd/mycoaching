@@ -25,97 +25,79 @@ const handleBackToLogin = () => {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center relative">
-    <!-- Background Image with Overlay -->
-    <div class="absolute inset-0 z-0">
-      <img
-        src="@/assets/garrett-butler-UrJ-fn2iRUM-unsplash.jpg"
-        alt="Background"
-        class="w-full h-full object-cover object-bottom"
-      />
-      <div class="absolute inset-0 bg-night-900/80"></div>
-    </div>
+  <div class="min-h-screen flex items-center justify-center bg-bg-primary relative overflow-hidden">
+    <!-- Ambient glow -->
+    <div class="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-accent-500/10 rounded-full blur-3xl"></div>
 
     <!-- Content -->
-    <div class="max-w-md w-full mx-4 relative z-10">
+    <div class="max-w-md w-full mx-4 relative z-10 animate-fade-in">
       <!-- Card -->
-      <div class="bg-night-800 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden">
+      <div class="card">
         <!-- Header -->
-        <div class="px-8 pt-8 pb-6 text-center">
-          <div class="flex justify-center mb-6">
+        <div class="text-center mb-8">
+          <div class="flex justify-center mb-5">
             <img src="@/assets/logo.svg" alt="Logo" class="h-16 w-16 animate-pulse" />
           </div>
-          <h2 class="text-3xl font-extrabold bg-gradient-to-r from-night-500 to-night-700 bg-clip-text text-transparent">
+          <h2 class="text-3xl font-extrabold text-text-primary">
             Vérification
           </h2>
-          <p class="mt-2 text-sm text-white">
+          <p class="mt-2 text-sm text-text-muted">
             Entrez le code reçu par email
           </p>
-          <p v-if="authStore.pendingVerification" class="mt-1 text-sm text-white/80">
-            Code envoyé à {{ authStore.pendingVerificationEmail }}
+          <p v-if="authStore.pendingVerification" class="mt-1 text-sm text-accent-400">
+            {{ authStore.pendingVerificationEmail }}
           </p>
         </div>
 
         <!-- Message d'erreur -->
-        <div v-if="authStore.error" class="mx-8 mb-6">
-          <div class="bg-red-50/90 border-l-4 border-red-400 p-4 rounded-lg">
-            <div class="flex">
-              <div class="flex-shrink-0">
-                <ExclamationCircleIcon class="h-5 w-5 text-red-400" />
-              </div>
-              <div class="ml-3">
-                <p class="text-sm text-red-700">{{ authStore.error }}</p>
-              </div>
-            </div>
+        <div v-if="authStore.error" class="mb-6">
+          <div class="flex items-center gap-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+            <ExclamationCircleIcon class="h-5 w-5 text-red-400 flex-shrink-0" />
+            <p class="text-sm text-red-400">{{ authStore.error }}</p>
           </div>
         </div>
 
         <!-- Formulaire -->
-        <form class="px-8 pb-8" @submit.prevent="handleVerifyOTP">
-          <div class="space-y-6">
+        <form @submit.prevent="handleVerifyOTP">
+          <div class="space-y-5">
             <div>
-              <div class="relative">
-                <input
-                  id="otp"
-                  v-model="otpCode"
-                  type="text"
-                  required
-                  class="input-primary w-full text-center text-2xl tracking-widest py-3 bg-white/50 border-white/20 text-night-900 placeholder-night-600"
-                  placeholder="••••••"
-                  maxlength="6"
-                  autocomplete="one-time-code"
-                />
-              </div>
+              <label for="otp" class="block text-sm font-medium text-text-secondary mb-1.5">Code de vérification</label>
+              <input
+                id="otp"
+                v-model="otpCode"
+                type="text"
+                required
+                class="input-field text-center text-2xl tracking-[0.3em] font-mono"
+                placeholder="000000"
+                maxlength="6"
+                autocomplete="one-time-code"
+              />
             </div>
 
-            <div>
-              <button
-                type="submit"
-                :disabled="authStore.loading"
-                class="relative btn-primary w-full flex justify-center items-center space-x-2 py-3 text-base bg-night-600 hover:bg-night-700 text-white"
-              >
-                <span class="absolute left-0 inset-y-0 flex items-center pl-3">
-                  <ArrowPathIcon
-                    v-if="authStore.loading"
-                    class="animate-spin h-5 w-5 text-white"
-                  />
-                  <ArrowRightIcon
-                    v-else
-                    class="h-5 w-5 text-white"
-                  />
-                </span>
-                {{ authStore.loading ? 'Vérification...' : 'Vérifier le code' }}
-              </button>
-            </div>
+            <button
+              type="submit"
+              :disabled="authStore.loading"
+              class="btn-primary press w-full flex justify-center items-center gap-2 py-3"
+            >
+              <ArrowPathIcon
+                v-if="authStore.loading"
+                class="animate-spin h-5 w-5"
+              />
+              <ArrowRightIcon
+                v-else
+                class="h-5 w-5"
+              />
+              {{ authStore.loading ? 'Vérification...' : 'Vérifier le code' }}
+            </button>
           </div>
         </form>
 
         <!-- Footer -->
-        <div class="px-8 py-4 bg-white/20 border-t border-white/20">
+        <div class="mt-6 pt-5 border-t border-white/[0.08]">
           <button
             type="button"
             @click="handleBackToLogin"
-            class="w-full text-sm text-white hover:text-white/80 transition-colors"
+            class="w-full text-sm text-text-muted hover:text-accent-400 transition-colors"
           >
             Retour à la connexion
           </button>
@@ -123,4 +105,4 @@ const handleBackToLogin = () => {
       </div>
     </div>
   </div>
-</template> 
+</template>
