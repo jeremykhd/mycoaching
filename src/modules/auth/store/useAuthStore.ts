@@ -151,7 +151,7 @@ export const useAuthStore = defineStore('auth', () => {
             const { error: signInError } = await supabase.auth.signInWithOtp({
                 email,
                 options: {
-                    shouldCreateUser: false
+                    shouldCreateUser: true
                 }
             })
             if (signInError) throw signInError
