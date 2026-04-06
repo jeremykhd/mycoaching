@@ -10,9 +10,10 @@ export function useObjectivesService() {
   }
 
   async function patchObjectives(
+    objectivesId: number,
     objectives: Partial<Objectives>
   ): Promise<PostgrestSingleResponse<Objectives>> {
-    return await supabase.from('training_objectives').update(objectives).select().single()
+    return await supabase.from('training_objectives').update(objectives).eq('id', objectivesId).select().single()
   }
 
   return {

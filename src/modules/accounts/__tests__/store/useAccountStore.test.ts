@@ -3,6 +3,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import { useAccountStore } from '../../store/useAccountStore'
 import { useAccountService } from '../../services/useAccountService'
 import { useHealthService } from '../../services/useHealthService'
+import { useObjectivesService } from '../../services/useObjectivesService'
 import type { Account } from '../../models/Account'
 import type { Health } from '../../models/Health'
 import type { Objectives } from '../../models/Objectives'
@@ -27,7 +28,8 @@ vi.mock('../../services/useAccountService', () => ({
 vi.mock('../../services/useHealthService', () => ({
     useHealthService: vi.fn(() => ({
         postHealth: vi.fn(),
-        patchHealth: vi.fn()
+        patchHealth: vi.fn(),
+        getWeightHistory: vi.fn()
     }))
 }))
 
@@ -295,14 +297,15 @@ describe('useAccountStore', () => {
             }
 
             const postHealthMock = vi.fn().mockResolvedValue({ data: mockHealth, error: null })
-            const patchAccountMock = vi.fn().mockResolvedValue(mockResponse)
+            const getAccountMock = vi.fn().mockResolvedValue(mockResponse)
             const mockService = createMockService({
-                patchAccount: patchAccountMock
+                getAccount: getAccountMock
             })
             vi.mocked(useAccountService).mockReturnValue(mockService)
             vi.mocked(useHealthService).mockReturnValue({
                 postHealth: postHealthMock,
-                patchHealth: vi.fn()
+                patchHealth: vi.fn(),
+                getWeightHistory: vi.fn()
             })
 
             const store = useAccountStore()
@@ -316,10 +319,7 @@ describe('useAccountStore', () => {
             await store.createHealth(healthData)
 
             expect(postHealthMock).toHaveBeenCalledWith(healthData)
-            expect(patchAccountMock).toHaveBeenCalledWith(mockAccount.id, {
-                health: mockHealth
-            })
-            expect(store.account).toEqual(mockAccount)
+            expect(getAccountMock).toHaveBeenCalledWith(mockAccount.user_id)
             expect(store.loading).toBe(false)
         })
     })
@@ -342,7 +342,8 @@ describe('useAccountStore', () => {
             vi.mocked(useAccountService).mockReturnValue(mockService)
             vi.mocked(useHealthService).mockReturnValue({
                 postHealth: vi.fn(),
-                patchHealth: patchHealthMock
+                patchHealth: patchHealthMock,
+                getWeightHistory: vi.fn()
             })
 
             const store = useAccountStore()
@@ -364,6 +365,7 @@ describe('useAccountStore', () => {
     describe('updateObjectives', () => {
         it('should update objectives successfully', async () => {
             const mockAccount = createDefaultMockAccount()
+            const mockObjectives = mockAccount.objectives
             const mockResponse: PostgrestSingleResponse<Account> = {
                 data: mockAccount,
                 error: null,
@@ -372,13 +374,17 @@ describe('useAccountStore', () => {
                 statusText: 'OK'
             }
 
-            const patchAccountMock = vi.fn().mockResolvedValue(mockResponse)
+            const patchObjectivesMock = vi.fn().mockResolvedValue({ data: mockObjectives, error: null })
             const getAccountMock = vi.fn().mockResolvedValue(mockResponse)
             const mockService = createMockService({
-                patchAccount: patchAccountMock,
                 getAccount: getAccountMock
             })
             vi.mocked(useAccountService).mockReturnValue(mockService)
+
+            vi.mocked(useObjectivesService).mockReturnValue({
+                postObjectives: vi.fn(),
+                patchObjectives: patchObjectivesMock
+            })
 
             const store = useAccountStore()
             store.account = mockAccount
@@ -387,11 +393,9 @@ describe('useAccountStore', () => {
                 training_per_week: 4
             }
 
-            await store.updateObjectives(mockAccount.id, objectivesData)
+            await store.updateObjectives(mockObjectives!.id, objectivesData)
 
-            expect(patchAccountMock).toHaveBeenCalledWith(mockAccount.id, {
-                training_objectives: objectivesData
-            })
+            expect(patchObjectivesMock).toHaveBeenCalledWith(mockObjectives!.id, objectivesData)
             expect(getAccountMock).toHaveBeenCalledWith(mockAccount.user_id)
             expect(store.loading).toBe(false)
         })

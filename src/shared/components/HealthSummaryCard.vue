@@ -42,7 +42,7 @@ const weightDiff = computed(() => {
   return +(latestEntry.value.weight - previousWeight.value).toFixed(1)
 })
 
-const isLosingTarget = computed(() => targetWeight.value < currentWeight)
+const isLosingTarget = computed(() => targetWeight.value < currentWeight.value)
 const progressPercent = computed(() => {
   const start = isLosingTarget.value
     ? Math.max(currentWeight.value, targetWeight.value) + 5

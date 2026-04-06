@@ -45,7 +45,7 @@ export const useAccountStore = defineStore('account', () => {
             console.error('Error fetching accounts:', error)
 
             // Affichage du message d'erreur.
-            toast.error(error, { position: POSITION.BOTTOM_RIGHT })
+            toast.error(`Erreur : ${error}`, { position: POSITION.BOTTOM_RIGHT })
         } finally {
             // Notifier le store que le chargement est fini.
             loading.value = false
@@ -204,26 +204,22 @@ export const useAccountStore = defineStore('account', () => {
         }
     }
 
-    const updateObjectives = async (accountId: number, objectivesData: Partial<Objectives>) => {
+    const updateObjectives = async (objectivesId: number, objectivesData: Partial<Objectives>) => {
         loading.value = true
         try {
-            // Mise à jour des objectifs
-            const { data, error } = await patchAccount(accountId, {
-                training_objectives: objectivesData
-            } as Partial<Account>)
+            const { data, error } = await patchObjectives(objectivesId, objectivesData)
 
             if (error) throw new Error(error.message)
-
-            // Refetch de l'account pour avoir les données à jour
-            if (account.value?.user_id) {
-                await fetchAccount(account.value.user_id)
-            }
 
             toast.success('Les objectifs ont été mis à jour.', {
                 position: POSITION.BOTTOM_RIGHT
             })
 
-            return data
+            // Refetch account to get updated data
+            if (account.value?.user_id) {
+                const updatedAccount = await fetchAccount(account.value.user_id)
+                return updatedAccount
+            }
         } catch (error) {
             console.error('Error updating objectives:', error)
             toast.error(`Erreur : ${error}`, {
