@@ -11,6 +11,7 @@ import {
   ClockIcon,
   PlusIcon,
   MinusIcon,
+  XMarkIcon,
 } from '@heroicons/vue/24/outline'
 import { FireIcon } from '@heroicons/vue/24/solid'
 
@@ -51,6 +52,7 @@ const {
   createWorkoutSession,
   getWorkoutSession,
   finishWorkoutSession,
+  deleteWorkoutSession,
   createSessionExercisesBatch,
   createSessionSet,
   updateSessionSet,
@@ -65,6 +67,8 @@ const workout = ref<Workout | null>(null)
 const exercises = ref<LiveExercise[]>([])
 const loading = ref(true)
 const finishing = ref(false)
+const cancelling = ref(false)
+const showCancelConfirm = ref(false)
 const elapsedSeconds = ref(0)
 const notes = ref('')
 const sessionCreatedAt = ref<string | null>(null)
@@ -349,6 +353,21 @@ async function finishSession() {
     finishing.value = false
   }
 }
+
+async function cancelSession() {
+  if (!sessionId.value) return
+  cancelling.value = true
+
+  try {
+    await deleteWorkoutSession(sessionId.value)
+    if (timerInterval) clearInterval(timerInterval)
+    router.push('/dashboard')
+  } catch (e) {
+    console.error('Error cancelling session:', e)
+    cancelling.value = false
+    showCancelConfirm.value = false
+  }
+}
 </script>
 
 <template>
@@ -372,6 +391,12 @@ async function finishSession() {
             </p>
           </div>
         </div>
+        <button
+          @click="showCancelConfirm = true"
+          class="p-2 rounded-lg hover:bg-red-500/10 transition-colors press"
+        >
+          <XMarkIcon class="h-5 w-5 text-red-400" />
+        </button>
       </div>
 
       <!-- Timer & Progress Bar -->
@@ -518,5 +543,38 @@ async function finishSession() {
         <span>{{ finishing ? 'Enregistrement...' : 'Terminer la séance' }}</span>
       </button>
     </div>
+
+    <!-- Cancel confirmation modal -->
+    <Teleport to="body">
+      <Transition name="page">
+        <div v-if="showCancelConfirm" class="fixed inset-0 z-50 flex items-center justify-center">
+          <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showCancelConfirm = false" />
+          <div class="relative card max-w-sm mx-4 w-full text-center">
+            <div class="w-12 h-12 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-4">
+              <XMarkIcon class="h-6 w-6 text-red-400" />
+            </div>
+            <h3 class="text-lg font-bold text-text-primary mb-2">Annuler la séance ?</h3>
+            <p class="text-sm text-text-muted mb-6">
+              Toute la progression de cette séance sera supprimée. Cette action est irréversible.
+            </p>
+            <div class="flex gap-3">
+              <button
+                @click="showCancelConfirm = false"
+                class="btn-secondary press flex-1"
+              >
+                Continuer
+              </button>
+              <button
+                @click="cancelSession"
+                :disabled="cancelling"
+                class="flex-1 py-2.5 rounded-xl bg-red-500 text-white font-medium hover:bg-red-600 transition-all duration-200 press"
+              >
+                {{ cancelling ? 'Suppression...' : 'Annuler la séance' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>

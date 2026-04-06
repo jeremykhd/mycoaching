@@ -59,11 +59,21 @@ const measureLabel = computed(() => {
 })
 
 const handleSubmit = async () => {
-  if (account.value?.id && account.value?.health?.id) {
+  if (!account.value?.id) return
+
+  if (account.value.health?.id) {
+    // Update existing health data
     const updatedAccount = await accountStore.updateHealth(account.value.health.id, formData.value)
-    isEditing.value = false
-    authStore.account = updatedAccount as Account
+    if (updatedAccount) authStore.account = updatedAccount as Account
+  } else {
+    // Create new health data
+    const updatedAccount = await accountStore.createHealth({
+      ...formData.value,
+      account_id: account.value.id,
+    })
+    if (updatedAccount) authStore.account = updatedAccount as Account
   }
+  isEditing.value = false
 }
 
 const handleCancel = () => {

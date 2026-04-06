@@ -226,6 +226,13 @@ export function useProgramService() {
       .single()
   }
 
+  async function deleteWorkoutSession(sessionId: number) {
+    return await supabase
+      .from('workout_session')
+      .delete()
+      .eq('id', sessionId)
+  }
+
   return {
     getPrograms,
     getActiveProgram,
@@ -247,5 +254,6 @@ export function useProgramService() {
     createSessionExercisesBatch,
     createSessionSet,
     updateSessionSet,
+    deleteWorkoutSession,
   }
 }

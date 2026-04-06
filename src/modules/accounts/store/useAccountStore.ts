@@ -151,42 +151,28 @@ export const useAccountStore = defineStore('account', () => {
     }
 
     const createHealth = async (healthData: Partial<Health>) => {
-        // Notifier le store qu'un chargement est en cours.
         loading.value = true
         try {
-            if (account.value) {
-                // Utilisation de la méthode post du service en lien pour créer un compte lors de la première connexion.
-                const health = await postHealth(healthData)
+            if (!account.value) throw new Error("Aucun compte n'est disponible")
 
-                if (health.error) throw new Error(health.error.message)
+            const { data, error } = await postHealth(healthData)
+            if (error) throw new Error(error.message)
 
-                const { data, error } = await patchAccount(account.value?.id, {
-                    health: health.data as Health
-                })
+            toast.success('Les informations de santé ont été enregistrées.', {
+                position: POSITION.BOTTOM_RIGHT
+            })
 
-                if (error) throw new Error(error.message)
-
-                // Mis à jour des states du store.
-                account.value = data
-
-                // Affichage du message de succès.
-                toast.success('Les informations de votre compte on bien été pris en compte', {
-                    position: POSITION.BOTTOM_RIGHT
-                })
-
-                return data
-            } else {
-                throw new Error(`'Aucun compte n'est disponible`)
+            // Refetch account to get the linked health data
+            if (account.value.user_id) {
+                const updatedAccount = await fetchAccount(account.value.user_id)
+                return updatedAccount
             }
         } catch (error) {
-            console.error('Error fetching accounts:', error)
-
-            // Affichage du message d'erreur.
+            console.error('Error creating health:', error)
             toast.error(`Erreur : ${error}`, {
                 position: POSITION.BOTTOM_RIGHT
             })
         } finally {
-            // Notifier le store que le chargement est fini.
             loading.value = false
         }
     }

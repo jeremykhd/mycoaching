@@ -6,6 +6,8 @@ import { useProgramStore } from '@/modules/workout/store/useProgramStore'
 import { useProgramService } from '@/modules/workout/services/useProgramService'
 import MonthCalendar from '@/modules/workout/components/MonthCalendar.vue'
 import SessionCard from '@/modules/workout/components/SessionCard.vue'
+import ActiveProgramCard from '@/shared/components/ActiveProgramCard.vue'
+import HealthSummaryCard from '@/shared/components/HealthSummaryCard.vue'
 import {
   PlayIcon,
   CalendarDaysIcon,
@@ -13,6 +15,7 @@ import {
   XMarkIcon,
   ChartBarIcon,
   ClockIcon,
+  CheckCircleIcon,
 } from '@heroicons/vue/24/outline'
 import { FireIcon, BoltIcon } from '@heroicons/vue/24/solid'
 
@@ -23,6 +26,7 @@ const { getInProgressSession } = useProgramService()
 const account = authStore.account
 
 const showWorkoutPicker = ref(false)
+const selectedDate = ref<string | null>(null)
 const loading = ref(true)
 const inProgressSession = ref<any>(null)
 
@@ -164,6 +168,56 @@ const streak = computed(() => {
   return count
 })
 
+// Selected date data
+const selectedDateFormatted = computed(() => {
+  if (!selectedDate.value) return ''
+  return new Date(selectedDate.value + 'T00:00:00').toLocaleDateString('fr-FR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  })
+})
+
+const selectedDatePlannedWorkouts = computed(() => {
+  if (!selectedDate.value) return []
+  const program = programStore.activeProgram
+  if (!program?.program_workouts?.length) return []
+
+  // Find which day_of_week this date is
+  const date = new Date(selectedDate.value + 'T00:00:00')
+  const dow = date.getDay() === 0 ? 7 : date.getDay()
+
+  // Check if this date is in the planned dates
+  if (!plannedDates.value.includes(selectedDate.value)) return []
+
+  return program.program_workouts
+    .filter(pw => pw.day_of_week === dow)
+    .map(pw => pw.workout)
+    .filter(Boolean)
+})
+
+const selectedDateSessions = computed(() => {
+  if (!selectedDate.value) return []
+  return programStore.sessions.filter(s => {
+    return new Date(s.created_at).toISOString().split('T')[0] === selectedDate.value
+  })
+})
+
+const selectedDateIsPlanned = computed(() => {
+  return selectedDate.value ? plannedDates.value.includes(selectedDate.value) : false
+})
+
+const selectedDateIsCompleted = computed(() => {
+  return selectedDate.value ? completedDates.value.includes(selectedDate.value) : false
+})
+
+function onDateSelect(date: string) {
+  // Only open for dates with planned or completed sessions
+  if (plannedDates.value.includes(date) || completedDates.value.includes(date)) {
+    selectedDate.value = date
+  }
+}
+
 function startWorkout(workoutId: number) {
   showWorkoutPicker.value = false
   router.push(`/workout/live/${workoutId}`)
@@ -247,8 +301,24 @@ function startWorkout(workoutId: number) {
       </div>
     </div>
 
+    <!-- Active Program -->
+    <div v-if="programStore.activeProgram" class="animate-fade-in-up stagger-2">
+      <ActiveProgramCard
+        :program="programStore.activeProgram"
+        :sessions-this-week="sessionsThisWeek.length"
+      />
+    </div>
+
+    <!-- Health Summary -->
+    <div v-if="account?.health" class="animate-fade-in-up stagger-3">
+      <HealthSummaryCard
+        :health="account.health"
+        :account-id="account.id"
+      />
+    </div>
+
     <!-- Weekly Stats -->
-    <div class="grid grid-cols-3 gap-2 animate-fade-in-up stagger-2">
+    <div class="grid grid-cols-3 gap-2 animate-fade-in-up" :class="account?.health ? 'stagger-4' : 'stagger-3'">
       <div class="card text-center !py-3">
         <p class="text-xl font-bold text-accent-400">{{ sessionsThisWeek.length }}</p>
         <p class="text-[10px] text-text-muted">/ {{ weeklyTarget }} séances</p>
@@ -264,15 +334,16 @@ function startWorkout(workoutId: number) {
     </div>
 
     <!-- Calendar -->
-    <div class="animate-fade-in-up stagger-3">
+    <div class="animate-fade-in-up stagger-5">
       <MonthCalendar
         :planned-dates="plannedDates"
         :completed-dates="completedDates"
+        @select="onDateSelect"
       />
     </div>
 
     <!-- Recent Sessions -->
-    <div class="animate-fade-in-up stagger-4">
+    <div class="animate-fade-in-up stagger-6">
       <div class="flex items-center justify-between mb-3">
         <h2 class="text-sm font-semibold text-text-primary">Dernières séances</h2>
         <RouterLink to="/workout/sessions" class="text-xs text-accent-400 hover:text-accent-300 transition-colors">
@@ -290,7 +361,7 @@ function startWorkout(workoutId: number) {
                 ? [{ label: 'Terminée', type: 'accent' as const }]
                 : [{ label: 'En cours', type: 'neutral' as const }]),
             ]"
-            :to="`/workout/session/${(session as any).workout_id}`"
+            :to="`/workout/history/${session.id}`"
           />
         </div>
       </div>
@@ -303,7 +374,7 @@ function startWorkout(workoutId: number) {
     </div>
 
     <!-- Quick links -->
-    <div class="grid grid-cols-2 gap-2 animate-fade-in-up stagger-5">
+    <div class="grid grid-cols-2 gap-2 animate-fade-in-up stagger-7">
       <RouterLink to="/workout" class="card flex items-center space-x-3 press-sm">
         <div class="w-9 h-9 rounded-full bg-accent-500/15 flex items-center justify-center flex-shrink-0">
           <FireIcon class="h-4 w-4 text-accent-400" />
@@ -323,6 +394,94 @@ function startWorkout(workoutId: number) {
         </div>
       </RouterLink>
     </div>
+
+    <!-- Day Summary Bottom Sheet -->
+    <Teleport to="body">
+      <Transition name="page">
+        <div v-if="selectedDate" class="fixed inset-0 z-50 flex flex-col">
+          <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="selectedDate = null" />
+
+          <div class="relative mt-auto max-h-[60vh] flex flex-col bg-bg-primary rounded-t-2xl overflow-hidden animate-slide-up">
+            <!-- Header -->
+            <div class="flex items-center justify-between p-4 border-b border-white/[0.08]">
+              <div>
+                <h3 class="text-sm font-semibold text-text-primary capitalize">{{ selectedDateFormatted }}</h3>
+                <div class="flex items-center gap-2 mt-0.5">
+                  <span v-if="selectedDateIsCompleted" class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-accent-500/15 text-accent-400">Effectuée</span>
+                  <span v-else-if="selectedDateIsPlanned" class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/[0.06] text-text-muted">Prévue</span>
+                </div>
+              </div>
+              <button @click="selectedDate = null" class="p-1.5 rounded-lg hover:bg-white/5 transition-colors">
+                <XMarkIcon class="h-5 w-5 text-text-muted" />
+              </button>
+            </div>
+
+            <div class="overflow-y-auto flex-1 px-4 pb-safe">
+              <!-- Completed sessions -->
+              <div v-if="selectedDateSessions.length" class="py-3 space-y-2">
+                <h4 class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Séances effectuées</h4>
+                <RouterLink
+                  v-for="session in selectedDateSessions"
+                  :key="session.id"
+                  :to="`/workout/history/${session.id}`"
+                  @click="selectedDate = null"
+                  class="flex items-center space-x-3 p-3 rounded-xl hover:bg-white/[0.06] transition-colors press-sm"
+                >
+                  <div class="w-10 h-10 rounded-lg bg-accent-500/15 flex items-center justify-center flex-shrink-0">
+                    <CheckCircleIcon class="h-5 w-5 text-accent-400" />
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-sm font-medium text-text-primary truncate">{{ (session as any).workout?.title || 'Séance' }}</p>
+                    <div class="flex items-center gap-2 mt-0.5">
+                      <span class="text-[10px] text-text-muted">
+                        {{ new Date(session.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) }}
+                      </span>
+                      <span v-if="session.finished_at" class="text-[10px] text-accent-400">
+                        {{ Math.round((new Date(session.finished_at).getTime() - new Date(session.created_at).getTime()) / 60000) }} min
+                      </span>
+                      <span v-else class="text-[10px] text-amber-400">En cours</span>
+                    </div>
+                  </div>
+                  <FireIcon class="h-4 w-4 text-accent-400 flex-shrink-0" />
+                </RouterLink>
+              </div>
+
+              <!-- Planned workouts -->
+              <div v-if="selectedDatePlannedWorkouts.length" class="py-3 space-y-2" :class="selectedDateSessions.length ? 'border-t border-white/[0.08]' : ''">
+                <h4 class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Séances prévues</h4>
+                <button
+                  v-for="w in selectedDatePlannedWorkouts"
+                  :key="w!.id"
+                  @click="selectedDate = null; startWorkout(w!.id)"
+                  class="w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-white/[0.06] transition-colors text-left press-sm"
+                >
+                  <div class="w-10 h-10 rounded-lg bg-white/[0.06] flex items-center justify-center flex-shrink-0">
+                    <FireIcon class="h-5 w-5 text-text-muted" />
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-sm font-medium text-text-primary truncate">{{ w!.title }}</p>
+                    <div class="flex items-center gap-1.5 mt-0.5">
+                      <span v-if="w!.type" class="text-[10px] text-accent-400">
+                        {{ typeof w!.type === 'object' ? (w! as any).type.name : '' }}
+                      </span>
+                      <span v-if="(w as any)?.exercises?.length" class="text-[10px] text-text-muted">
+                        {{ (w as any).exercises.length }} exercice{{ (w as any).exercises.length > 1 ? 's' : '' }}
+                      </span>
+                    </div>
+                  </div>
+                  <PlayIcon class="h-5 w-5 text-accent-400 flex-shrink-0" />
+                </button>
+              </div>
+
+              <!-- Empty state -->
+              <div v-if="!selectedDateSessions.length && !selectedDatePlannedWorkouts.length" class="flex flex-col items-center py-8 text-center">
+                <p class="text-sm text-text-muted">Rien de prévu ce jour</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
     <!-- Workout Picker Modal -->
     <Teleport to="body">
