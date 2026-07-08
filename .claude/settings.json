@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.command' | { read -r cmd; if echo \"$cmd\" | grep -qE '(rm\\s+-rf|git\\s+push\\s+--force|git\\s+reset\\s+--hard|git\\s+clean\\s+-f)'; then echo '{\"decision\":\"block\",\"reason\":\"Commande dangereuse détectée. Confirmez avant de continuer.\"}'; fi; }",
+            "statusMessage": "Vérification commande..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath' | { read -r f; npx eslint --no-error-on-unmatched-pattern --quiet \"$f\"; } 2>/dev/null || true",
+            "statusMessage": "Lint du fichier..."
+          }
+        ]
+      }
+    ]
+  }
+}
