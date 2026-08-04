@@ -97,7 +97,7 @@ describe('useAccountService', () => {
             // Vérifications
             expect(fromMock).toHaveBeenCalledWith('account')
             expect(selectMock).toHaveBeenCalledWith(
-                '*, health(id, height, weight, target_weight, target_training, measure_weight), training_objectives(training_per_week), role(name)'
+                '*, health!account_id(id, height, weight, target_weight, target_training, measure_weight), training_objectives!account_id(id, training_per_week), role:role_id(name)'
             )
             expect(result).toEqual(mockResponse)
         })
@@ -159,7 +159,7 @@ describe('useAccountService', () => {
             // Vérifications
             expect(fromMock).toHaveBeenCalledWith('account')
             expect(selectMock).toHaveBeenCalledWith(
-                '*, health(id, height, weight, target_weight, target_training, measure_weight), training_objectives(training_per_week), role(name)'
+                '*, health!account_id(id, height, weight, target_weight, target_training, measure_weight), training_objectives!account_id(id, training_per_week), role:role_id(name)'
             )
             expect(result).toEqual(mockResponse)
         })

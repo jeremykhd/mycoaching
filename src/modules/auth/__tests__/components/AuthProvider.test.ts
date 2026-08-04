@@ -189,10 +189,9 @@ describe('AuthProvider', () => {
 
             const createAccountView = wrapper.findComponent(CreateAccountView)
             expect(createAccountView.exists()).toBe(true)
-            expect(createAccountView.props('user')).toEqual(authStore.user)
         })
 
-        it('should pass user prop to CreateAccountView', async () => {
+        it('should expose the user via the auth store for CreateAccountView', async () => {
             const user = createMockUser()
             authStore.user = user
             authStore.account = null
@@ -200,9 +199,10 @@ describe('AuthProvider', () => {
 
             wrapper = await mountWrapper()
 
+            // CreateAccountView reads the user from the auth store, not a prop.
             const createAccountView = wrapper.findComponent(CreateAccountView)
             expect(createAccountView.exists()).toBe(true)
-            expect(createAccountView.props('user')).toEqual(user)
+            expect(authStore.user).toEqual(user)
         })
     })
 

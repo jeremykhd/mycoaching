@@ -92,13 +92,13 @@ describe('VerifyOTP View', () => {
         authStore.error = errorMessage
         await wrapper.vm.$nextTick()
 
-        const errorElement = wrapper.find('.text-red-700')
+        const errorElement = wrapper.find('p.text-red-400')
         expect(errorElement.exists()).toBe(true)
         expect(errorElement.text()).toBe(errorMessage)
     })
 
     it('should display the email address when pendingVerification is true', () => {
-        const emailText = wrapper.find('p.text-white\\/80')
+        const emailText = wrapper.find('p.text-accent-400')
         expect(emailText.exists()).toBe(true)
         expect(emailText.text()).toContain('test@example.com')
     })

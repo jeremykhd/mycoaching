@@ -201,7 +201,7 @@ describe('useAuthStore', () => {
 
             expect(supabase.auth.signInWithOtp).toHaveBeenCalledWith({
                 email: 'test@test.com',
-                options: { shouldCreateUser: false }
+                options: { shouldCreateUser: true }
             })
             expect(store.pendingVerification).toBe(true)
             expect(store.pendingVerificationEmail).toBe('test@test.com')

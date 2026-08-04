@@ -5,6 +5,7 @@ import { useAccountStore } from '../../store/useAccountStore'
 import { useAuthStore } from '@/modules/auth/store/useAuthStore'
 import { createMockAccount, createTestWrapper } from '@/shared/test/testUtils'
 import { nextTick } from 'vue'
+import { PencilSquareIcon, XMarkIcon, CheckIcon } from '@heroicons/vue/24/outline'
 
 describe('InformationsComponent', () => {
     let wrapper: any
@@ -34,7 +35,7 @@ describe('InformationsComponent', () => {
         it('should show edit button initially', () => {
             const editButton = wrapper.find('button')
             expect(editButton.exists()).toBe(true)
-            expect(editButton.text()).toContain('Modifier')
+            expect(wrapper.findComponent(PencilSquareIcon).exists()).toBe(true)
         })
     })
 
@@ -47,7 +48,8 @@ describe('InformationsComponent', () => {
 
             expect(wrapper.find('input[type="text"]').exists()).toBe(true)
             expect(wrapper.find('select').exists()).toBe(true)
-            expect(wrapper.find('button').text()).toContain('Annuler')
+            // Cancel/save are icon buttons in edit mode
+            expect(wrapper.findComponent(XMarkIcon).exists()).toBe(true)
         })
 
         it('should show save and cancel buttons in edit mode', async () => {
@@ -57,8 +59,9 @@ describe('InformationsComponent', () => {
             await flushPromises()
 
             const buttons = wrapper.findAll('button')
-            expect(buttons[1].text()).toContain('Annuler')
-            expect(buttons[2].text()).toContain('Enregistrer')
+            expect(buttons.length).toBe(2)
+            expect(wrapper.findComponent(XMarkIcon).exists()).toBe(true)
+            expect(wrapper.findComponent(CheckIcon).exists()).toBe(true)
         })
     })
 
@@ -94,7 +97,7 @@ describe('InformationsComponent', () => {
             await nextTick()
             await flushPromises()
 
-            const saveButton = wrapper.findAll('button')[2]
+            const saveButton = wrapper.findAll('button')[1]
             await saveButton.trigger('click')
             await nextTick()
             await flushPromises()

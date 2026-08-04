@@ -72,6 +72,9 @@ describe('CreateAccountView', () => {
             }
 
             accountStore.createAccount = vi.fn().mockResolvedValue(mockAccount)
+            // CreateAccountView reads the user from the auth store, not a prop.
+            authStore.user = mockUser
+            authStore.fetchAccount = vi.fn().mockResolvedValue(undefined)
 
             // Trouver le formulaire et émettre l'événement submit
             const form = wrapper.findComponent({ name: 'AccountFormComponent' })

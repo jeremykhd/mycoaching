@@ -4,8 +4,7 @@ import HealthComponent from '../../components/HealthComponent.vue'
 import { useAccountStore } from '../../store/useAccountStore'
 import { useAuthStore } from '@/modules/auth/store/useAuthStore'
 import { createMockAccount, createTestWrapper } from '@/shared/test/testUtils'
-import UiInputNumber from '@/shared/ui/inputs/UiInputNumber.vue'
-import UiSelect from '@/shared/ui/select/UiSelect.vue'
+import { XMarkIcon, CheckIcon } from '@heroicons/vue/24/outline'
 
 describe('HealthComponent', () => {
     let wrapper: any
@@ -25,8 +24,8 @@ describe('HealthComponent', () => {
             await flushPromises()
 
             expect(wrapper.text()).toContain('Aucune donnée de santé')
-            expect(wrapper.text()).toContain('Ajouter mes informations')
-            expect(wrapper.find('button').text()).toContain('Ajouter mes informations')
+            expect(wrapper.text()).toContain('Ajouter')
+            expect(wrapper.find('button').text()).toContain('Ajouter')
         })
 
         it('should display health data when it exists', async () => {
@@ -34,8 +33,8 @@ describe('HealthComponent', () => {
             authStore.account = account
             await flushPromises()
 
-            expect(wrapper.text()).toContain('Statistiques de Santé')
-            expect(wrapper.text()).toContain('Objectifs de Santé')
+            expect(wrapper.text()).toContain('Poids')
+            expect(wrapper.text()).toContain('Obj. poids')
             expect(wrapper.text()).toContain(account.health!.weight.toString())
             expect(wrapper.text()).toContain(account.health!.height.toString())
             expect(wrapper.text()).toContain(account.health!.target_weight.toString())
@@ -65,9 +64,11 @@ describe('HealthComponent', () => {
             await editButton.trigger('click')
             await flushPromises()
 
+            // Edit mode shows icon buttons: cancel (XMark) then save (Check)
             const buttons = wrapper.findAll('button')
-            expect(buttons[1].text()).toContain('Annuler')
-            expect(buttons[2].text()).toContain('Enregistrer')
+            expect(buttons.length).toBe(2)
+            expect(wrapper.findComponent(XMarkIcon).exists()).toBe(true)
+            expect(wrapper.findComponent(CheckIcon).exists()).toBe(true)
         })
     })
 
@@ -80,12 +81,12 @@ describe('HealthComponent', () => {
             const editButton = wrapper.find('button')
             await editButton.trigger('click')
 
-            const inputs = wrapper.findAllComponents(UiInputNumber)
+            const inputs = wrapper.findAll('input[type="number"]')
             const weightInput = inputs[0]
             const heightInput = inputs[1]
             const targetWeightInput = inputs[2]
             const targetTrainingInput = inputs[3]
-            const measureSelect = wrapper.findComponent(UiSelect)
+            const measureSelect = wrapper.find('select')
 
             expect(weightInput.exists()).toBe(true)
             expect(heightInput.exists()).toBe(true)
@@ -93,11 +94,21 @@ describe('HealthComponent', () => {
             expect(targetTrainingInput.exists()).toBe(true)
             expect(measureSelect.exists()).toBe(true)
 
-            expect(weightInput.props('modelValue')).toBe(account.health!.weight)
-            expect(heightInput.props('modelValue')).toBe(account.health!.height)
-            expect(targetWeightInput.props('modelValue')).toBe(account.health!.target_weight)
-            expect(targetTrainingInput.props('modelValue')).toBe(account.health!.target_training)
-            expect(measureSelect.props('modelValue')).toBe(account.health!.measure_weight)
+            expect((weightInput.element as HTMLInputElement).value).toBe(
+                String(account.health!.weight)
+            )
+            expect((heightInput.element as HTMLInputElement).value).toBe(
+                String(account.health!.height)
+            )
+            expect((targetWeightInput.element as HTMLInputElement).value).toBe(
+                String(account.health!.target_weight)
+            )
+            expect((targetTrainingInput.element as HTMLInputElement).value).toBe(
+                String(account.health!.target_training)
+            )
+            expect((measureSelect.element as HTMLSelectElement).value).toBe(
+                account.health!.measure_weight
+            )
         })
     })
 
@@ -113,10 +124,10 @@ describe('HealthComponent', () => {
             await editButton.trigger('click')
             await flushPromises()
 
-            const inputs = wrapper.findAllComponents(UiInputNumber)
+            const inputs = wrapper.findAll('input[type="number"]')
             const weightInput = inputs[0]
             const heightInput = inputs[1]
-            const measureSelect = wrapper.findComponent(UiSelect)
+            const measureSelect = wrapper.find('select')
 
             await weightInput.setValue(80)
             await heightInput.setValue(185)
@@ -163,7 +174,10 @@ describe('HealthComponent', () => {
             authStore.account = account
             await flushPromises()
 
-            expect(wrapper.find('p[id="IMC"]').text()).toContain('21.6')
+            const bmiCard = wrapper
+                .findAll('.glass-subtle')
+                .find((c: any) => c.text().includes('IMC'))
+            expect(bmiCard?.text()).toContain('21.6')
         })
     })
 })

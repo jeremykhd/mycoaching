@@ -23,8 +23,8 @@ describe('AccountFormComponent', () => {
             const select = wrapper.find('select')
 
             expect(inputs[0].element.value).toBe('') // firstname
-            expect(inputs[1].element.value).toBe('') // birthday
-            expect(inputs[2].element.value).toBe('') // lastname
+            expect(inputs[1].element.value).toBe('') // lastname
+            expect(inputs[2].element.value).toBe('') // birthday
             expect(inputs[3].element.value).toBe('') // phone_number
             expect(select.element.value).toBe('') // gender
         })
@@ -40,8 +40,8 @@ describe('AccountFormComponent', () => {
             const select = wrapper.find('select')
 
             expect(inputs[0].element.value).toBe(account.firstname)
-            expect(inputs[1].element.value).toBe(account.birthday)
-            expect(inputs[2].element.value).toBe(account.lastname)
+            expect(inputs[1].element.value).toBe(account.lastname)
+            expect(inputs[2].element.value).toBe(account.birthday)
             expect(inputs[3].element.value).toBe(account.phone_number)
             expect(select.element.value).toBe(account.gender)
         })
@@ -57,8 +57,8 @@ describe('AccountFormComponent', () => {
             const select = wrapper.find('select')
 
             expect(inputs[0].element.validity.valid).toBe(false) // firstname
-            expect(inputs[1].element.validity.valid).toBe(false) // birthday
-            expect(inputs[2].element.validity.valid).toBe(false) // lastname
+            expect(inputs[1].element.validity.valid).toBe(false) // lastname
+            expect(inputs[2].element.validity.valid).toBe(false) // birthday
             expect(inputs[3].element.validity.valid).toBe(false) // phone_number
             expect(select.element.validity.valid).toBe(false) // gender
         })

@@ -31,7 +31,7 @@ describe('ProfileView', () => {
         wrapper = createTestWrapper(ProfileView, {
             props: {
                 user: mockUser,
-                account: mockAccount
+                initialAccount: mockAccount
             },
             global: {
                 stubs: {
@@ -65,9 +65,8 @@ describe('ProfileView', () => {
 
     describe('Objectifs section', () => {
         it('should display objectives section', async () => {
-            expect(wrapper.text()).toContain('Mes Objectifs')
-            expect(wrapper.text()).toContain('Ajouter un objectif')
-            expect(wrapper.text()).toContain('La gestion des objectifs sera bientôt disponible')
+            expect(wrapper.text()).toContain('Objectifs')
+            expect(wrapper.text()).toContain('Entraînements / semaine')
         })
     })
 })
