@@ -374,7 +374,9 @@ describe('useAccountStore', () => {
                 statusText: 'OK'
             }
 
-            const patchObjectivesMock = vi.fn().mockResolvedValue({ data: mockObjectives, error: null })
+            const patchObjectivesMock = vi
+                .fn()
+                .mockResolvedValue({ data: mockObjectives, error: null })
             const getAccountMock = vi.fn().mockResolvedValue(mockResponse)
             const mockService = createMockService({
                 getAccount: getAccountMock
