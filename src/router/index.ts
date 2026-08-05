@@ -4,7 +4,21 @@ import { useAuthStore } from '@/modules/auth/store/useAuthStore'
 import LoginView from '@/modules/auth/views/LoginView.vue'
 import VerifyOTPView from '@/modules/auth/views/VerifyOTPView.vue'
 import CreateAccountView from '@/modules/accounts/views/CreateAccountView.vue'
-import { ExercisesRoute, exerciseDetailRoute, workoutRoute, workoutListRoute, workoutCreateRoute, programCreateRoute, programDetailRoute, programEditRoute, workoutSessionDetailRoute, workoutSessionEditRoute, liveSessionRoute, resumeSessionRoute, sessionPerformedDetailRoute } from '@/modules/workout/router/route'
+import {
+    ExercisesRoute,
+    exerciseDetailRoute,
+    workoutRoute,
+    workoutListRoute,
+    workoutCreateRoute,
+    programCreateRoute,
+    programDetailRoute,
+    programEditRoute,
+    workoutSessionDetailRoute,
+    workoutSessionEditRoute,
+    liveSessionRoute,
+    resumeSessionRoute,
+    sessionPerformedDetailRoute
+} from '@/modules/workout/router/route'
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -81,8 +95,14 @@ router.beforeEach(async (to, from, next) => {
     if (requiresAuth && !authStore.user) {
         // Rediriger vers la page de connexion si l'utilisateur n'est pas authentifié
         next({ name: 'login' })
-    } else if (requiresAuth && authStore.user && !authStore.account) {
+    } else if (
+        requiresAuth &&
+        authStore.user &&
+        !authStore.account &&
+        to.name !== 'create-account'
+    ) {
         // Rediriger vers la page de création de compte si l'utilisateur connecté n'a pas de compte
+        // (garde `to.name !== 'create-account'` pour éviter une redirection infinie sur elle-même)
         next({ name: 'create-account' })
     } else if ((requiresAuth || to.name === 'login') && authStore.pendingVerification) {
         // Rediriger vers la page de verification OTP si une vérification est en attente
