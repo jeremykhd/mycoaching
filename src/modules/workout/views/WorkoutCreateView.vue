@@ -226,6 +226,11 @@ async function addNewType() {
     creatingType.value = false
 }
 
+function cancelNewType() {
+    showNewTypeInput.value = false
+    newTypeName.value = ''
+}
+
 async function importExercise(result: WgerSearchResult) {
     if (importing.value !== null) return
     importing.value = result.base_id
@@ -463,10 +468,7 @@ async function saveWorkout() {
                     <CheckIcon class="h-4 w-4" />
                 </button>
                 <button
-                    @click="
-                        showNewTypeInput = false
-                        newTypeName = ''
-                    "
+                    @click="cancelNewType"
                     class="rounded-lg p-2 transition-colors hover:bg-white/5"
                 >
                     <XMarkIcon class="h-4 w-4 text-text-muted" />
